@@ -1,0 +1,10 @@
+{
+  "name": "cds-sports-results-system",
+  "version": "2.0.0",
+  "private": true,
+  "description": "CDS Sports Meet live scoreboard and persistent winner announcements",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "dependencies": { "ws": "^8.18.3" },
+  "engines": { "node": ">=18" }
+}
