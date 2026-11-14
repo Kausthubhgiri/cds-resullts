@@ -188,11 +188,24 @@ body:has(#winners-screen.active) #winners-screen .winners-head{margin-bottom:22p
 @keyframes premiumCardIn{from{opacity:0;transform:translateY(18px) scale(.985);filter:blur(4px)}to{opacity:1;transform:translateY(0) scale(1);filter:blur(0)}}
 @media(max-width:850px){#score-screen{inset:14vh 1.5vw 2vh!important}}
 @media(prefers-reduced-motion:reduce){.screen.active,.winner-card{animation:none!important}}
+
+/* Reliable full-screen advertisement playback */
+/* Ad phase takes over the entire viewport: no masthead, margins or other screens. */
+body:has(#ad-screen.active) .shell{display:none!important}
+body:has(#ad-screen.active){overflow:hidden!important;background:#000!important}
+#ad-screen.ad-screen{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;height:100dvh!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:#000!important;display:none;align-items:center;justify-content:center;z-index:2147483000!important;opacity:0;transform:none;pointer-events:none}
+#ad-screen.ad-screen.active{display:flex!important;opacity:1!important;transform:none!important;pointer-events:auto!important}
+#ad-video{position:absolute;inset:0;display:block;width:100vw!important;height:100vh!important;height:100dvh!important;max-width:none!important;max-height:none!important;object-fit:contain!important;object-position:center;background:#000}
+#ad-audio-toggle{position:fixed;right:22px;bottom:20px;z-index:2147483001;border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:10px 16px;background:rgba(0,0,0,.65);color:#fff;font:600 14px Inter,Segoe UI,Arial;cursor:pointer}
+#ad-playback-status{position:fixed;left:22px;bottom:20px;z-index:2147483001;color:#fff;background:rgba(0,0,0,.65);padding:9px 13px;border-radius:10px;font:500 13px Inter,Segoe UI,Arial}
+#ad-screen.is-playing #ad-audio-toggle,#ad-screen.is-playing #ad-playback-status{opacity:0;pointer-events:none;transition:opacity .35s ease}
+#ad-screen:not(.is-playing) #ad-audio-toggle,#ad-screen:not(.is-playing) #ad-playback-status{opacity:1}
+
 </style></head><body><div class="shell"><header class="top"><div><div class="eyebrow">Capital District Sahodaya · Official Results</div><h1 class="title">CDS SPORTS MEET 2K26</h1></div><div class="live">● LIVE RESULTS</div></header></div>
 <section id="score-screen" class="screen scoreboard active"><div id="podium" class="podium"></div><div id="school-rest" class="rest"></div></section>
 <section id="winners-screen" class="screen winners-screen"><div class="winners-head"><h2>CONGRATULATIONS WINNERS</h2><p>CELEBRATING OUR ACHIEVERS</p></div><div id="winners-grid" class="winners-grid"></div><div id="winner-page-count" class="page-count"></div></section>
 <section id="participants-screen" class="screen participants-screen"><div class="winners-head"><h2>EVENT PARTICIPANTS</h2><p id="participant-event-label">REGISTERED PARTICIPANTS</p></div><div id="participants-grid" class="participants-grid"></div><div id="participant-page-count" class="page-count"></div></section>
-<section id="ad-screen" class="screen ad-screen"><video id="ad-video" playsinline preload="auto"></video></section>
+<section id="ad-screen" class="screen ad-screen"><video id="ad-video" playsinline webkit-playsinline preload="auto" muted></video><div id="ad-playback-status">Loading advertisement…</div><button id="ad-audio-toggle" type="button">Enable sound</button></section>
 <div id="announcement" class="announcement"><div class="announce-card"><div class="announce-kicker">CDS SPORTS MEET 2K26 · OFFICIAL ANNOUNCEMENT</div><div id="a-position" class="announce-position">GOLD</div><div id="a-name" class="announce-name"></div><div id="a-school" class="announce-school"></div><div id="a-detail" class="announce-detail"></div></div></div>
 <script>
 const DEFAULT_SCHOOLS=[];
@@ -330,8 +343,37 @@ function maybeAd(){
   if(phase==='score'&&!pausedPhase&&!winnerQueue.length&&!$('announcement').classList.contains('show'))startPhase('score',15000);
   publishViewerStatus();return true;
 }
-function playNextAd(){if(!adConfig.enabled||!adFiles.length){adPending=false;resumePhase();return;}clearPhaseTimer();adPending=false;lastAdClock=Date.now();adPlaying=true;phase='ad';show('ad');if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'ad-started'}));publishViewerStatus();const video=$('ad-video');const file=adFiles[adIndex%adFiles.length];adIndex=(adIndex+1)%adFiles.length;video.src=file.url;video.currentTime=0;notifyQueue();video.onended=()=>finishAd();video.onerror=()=>finishAd();video.play().catch(()=>finishAd());}
-function finishAd(){const video=$('ad-video');video.pause();video.removeAttribute('src');video.load();adPlaying=false;lastAdClock=Date.now();if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'ad-finished'}));notifyQueue();if(winnerQueue.length){processWinnerQueue();}else{startPhase('score',5000);scoreReturnTimer=setTimeout(()=>resumePhase(),5000);}}
+function playNextAd(){
+  if(!adConfig.enabled||!adFiles.length){adPending=false;resumePhase();return;}
+  clearPhaseTimer();clearTimeout(adWaitTimer);adWaitTimer=null;adPending=false;
+  adPlaying=true;phase='ad';show('ad');
+  if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'ad-started'}));
+  publishViewerStatus();
+  const video=$('ad-video'),file=adFiles[adIndex%adFiles.length];
+  adIndex=(adIndex+1)%adFiles.length;
+  $('ad-playback-status').textContent='Playing advertisement';
+  $('ad-audio-toggle').textContent='Enable sound';
+  $('ad-screen').classList.remove('is-playing');
+  video.pause();video.muted=true;video.src=file.url;video.currentTime=0;
+  video.onended=()=>finishAd();
+  video.onerror=()=>{const failed=file.name||file.url;$('ad-playback-status').textContent='Could not load '+failed;console.error('Advertisement failed:',failed,video.error);setTimeout(()=>finishAd(),2500);};
+  notifyQueue();
+  const start=()=>video.play().then(()=>{$('ad-playback-status').textContent='Playing advertisement';$('ad-screen').classList.add('is-playing');}).catch(err=>{
+    console.warn('Advertisement playback was blocked:',err);
+    $('ad-playback-status').textContent='Playback blocked — click the screen to start';
+    const retry=()=>{video.play().then(()=>{$('ad-playback-status').textContent='Playing advertisement';$('ad-screen').classList.add('is-playing');}).catch(e=>console.error('Ad retry failed:',e));};
+    $('ad-screen').addEventListener('click',retry,{once:true});
+  });
+  if(video.readyState>=2)start();else video.oncanplay=()=>{video.oncanplay=null;start();};
+}
+$('ad-audio-toggle').addEventListener('click',e=>{
+  e.stopPropagation();const video=$('ad-video');
+  video.muted=!video.muted;
+  $('ad-audio-toggle').textContent=video.muted?'Enable sound':'Mute sound';
+  if(!video.muted)video.play().catch(err=>console.warn('Audio resume failed:',err));
+});
+
+function finishAd(){const video=$('ad-video');video.onended=null;video.onerror=null;video.oncanplay=null;video.pause();video.removeAttribute('src');video.load();$('ad-playback-status').textContent='';$('ad-screen').classList.remove('is-playing');adPlaying=false;lastAdClock=Date.now();if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'ad-finished'}));notifyQueue();if(winnerQueue.length){processWinnerQueue();}else{startPhase('score',5000);scoreReturnTimer=setTimeout(()=>resumePhase(),5000);}}
 function updateAdConfig(c){adConfig={enabled:!!c.enabled,intervalMinutes:Math.max(1,Number(c.intervalMinutes)||3),nextAdAt:Number(c.nextAdAt)||0};if(!adConfig.enabled){adPending=false;clearTimeout(adWaitTimer);if(adPlaying)finishAd();}publishViewerStatus();}
 function applyState(s){scores=s.scores||[];winners=s.winners||[];renderScores();renderWinnerPage();if(!phaseTimer&&!pausedPhase)startPhase('score',15000);}
 function connect(){const protocol=location.protocol==='https:'?'wss':'ws';ws=new WebSocket(`${protocol}://${location.host}`);ws.onopen=()=>{retry=0;notifyQueue();};ws.onclose=()=>{setTimeout(connect,Math.min(10000,1000*2**retry++));};ws.onerror=()=>ws.close();ws.onmessage=e=>{let d;try{d=JSON.parse(e.data)}catch{return}if(d.serverNow)serverClockOffset=Number(d.serverNow)-Date.now();if(d.type==='init-state'||d.type==='state'){applyState(d.state||{});if(d.adConfig)updateAdConfig(d.adConfig);}if(d.type==='ad-config'||d.type==='ad-schedule')updateAdConfig(d.adConfig||d.config||{});if(d.type==='ad-list')adFiles=d.ads||[];if(d.type==='score'){scores[d.index]=d.value;renderScores();scoreInterrupt();}if(d.type==='winner'){if(d.winners)winners=d.winners;else if(d.winner)winners.push(d.winner);renderWinnerPage();receiveWinner(d.winner||{});}if(d.type==='ping')return;};}
