@@ -15,7 +15,9 @@ const PARTICIPANTS_FILE = path.join(DATA_DIR, 'participants.json');
 const SETTINGS_FILE = path.join(DATA_DIR, 'settings.json');
 const AD_DIR = path.join(__dirname, 'ADVERTISEMENT');
 let adConfig = readJson(SETTINGS_FILE, { enabled: false, intervalMinutes: 3 });
+let adStatus = { phase: 'unknown', phaseEndsAt: 0, adPending: false, adPlaying: false, viewerSeenAt: 0, estimatedAdAt: 0, note: 'Waiting for viewer connection' };
 fs.mkdirSync(DATA_DIR, { recursive: true });
+if (adConfig.enabled && !Number(adConfig.nextAdAt)) { adConfig.nextAdAt = Date.now() + Math.max(1, Number(adConfig.intervalMinutes)||3)*60000; writeJsonAtomic(SETTINGS_FILE, adConfig); }
 
 function readJson(file, fallback) {
   try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return fallback; }
@@ -67,7 +69,7 @@ const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   if (req.method === 'OPTIONS') { res.writeHead(204, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type, Authorization', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS' }); return res.end(); }
   if (req.method === 'GET' && url.pathname === '/health') return sendJson(res, 200, { ok: true, service: 'cds-results', updatedAt: state.updatedAt });
-  if (req.method === 'GET' && url.pathname === '/api/state') return sendJson(res, 200, {...state, adConfig});
+  if (req.method === 'GET' && url.pathname === '/api/state') return sendJson(res, 200, {...state, adConfig, adStatus, serverNow: Date.now()});
   if (req.method === 'GET' && url.pathname === '/api/ads') return sendJson(res, 200, {ads:listAds()});
   if (req.method === 'GET' && url.pathname.startsWith('/ADVERTISEMENT/')) {
     const name=path.basename(decodeURIComponent(url.pathname.slice('/ADVERTISEMENT/'.length)));
@@ -110,15 +112,29 @@ const wss = new WebSocket.Server({ server });
 function broadcast(message) { const raw = JSON.stringify(message); for (const client of wss.clients) if (client.readyState === WebSocket.OPEN) client.send(raw); }
 function validWinner(w) { return w && typeof w.id === 'string' && typeof w.event === 'string' && typeof w.school === 'string' && typeof w.position === 'string' && typeof w.ageCategory === 'string'; }
 wss.on('connection', ws => {
-  ws.send(JSON.stringify({ type: 'init-state', state, adConfig }));
+  ws.send(JSON.stringify({ type: 'init-state', state, adConfig, adStatus, serverNow: Date.now() }));
+  ws.send(JSON.stringify({ type: 'ad-schedule', adConfig, adStatus, serverNow: Date.now() }));
   ws.send(JSON.stringify({ type: 'ad-list', ads:listAds() }));
   ws.on('message', raw => {
     let data; try { data = JSON.parse(raw.toString()); } catch { return ws.send(JSON.stringify({ type: 'error', message: 'Invalid message JSON' })); }
     const adminAction = ['score', 'winner', 'update-winner', 'delete-winner', 'clear-winners', 'clear-scores', 'ad-config'].includes(data.type);
     if (adminAction && !authorized(null, data.token)) return ws.send(JSON.stringify({ type: 'error', message: 'Admin authentication failed' }));
     if (data.type === 'ad-config' && data.config && typeof data.config.enabled === 'boolean') {
-      adConfig = { enabled:data.config.enabled, intervalMinutes:Math.max(1,Math.min(240,Number(data.config.intervalMinutes)||3)) };
-      writeJsonAtomic(SETTINGS_FILE,adConfig);broadcast({type:'ad-config',config:adConfig});
+      adConfig = { enabled:data.config.enabled, intervalMinutes:Math.max(1,Math.min(240,Number(data.config.intervalMinutes)||3)), nextAdAt: data.config.enabled ? Date.now()+Math.max(1,Math.min(240,Number(data.config.intervalMinutes)||3))*60000 : 0 };
+      if(!data.config.enabled){adStatus.adPending=false;adStatus.adPlaying=false;adStatus.estimatedAdAt=0;adStatus.note='Advertisements disabled';}
+      writeJsonAtomic(SETTINGS_FILE,adConfig);broadcast({type:'ad-config',config:adConfig,adStatus,serverNow:Date.now()});broadcast({type:'ad-schedule',adConfig,adStatus,serverNow:Date.now()});
+    } else if (data.type === 'viewer-status') {
+      adStatus = { ...adStatus, phase: String(data.phase||'unknown'), phaseEndsAt: Number(data.phaseEndsAt)||0, adPending: !!data.adPending, adPlaying: !!data.adPlaying, viewerSeenAt: Date.now(), estimatedAdAt: Number(data.estimatedAdAt)||0, note: String(data.note||'') };
+      broadcast({type:'viewer-status',adStatus,adConfig,serverNow:Date.now()});
+    } else if (data.type === 'ad-started') {
+      adStatus = { ...adStatus, phase:'ad', adPending:false, adPlaying:true, viewerSeenAt:Date.now(), estimatedAdAt:0, note:'Advertisement is playing' };
+      broadcast({type:'viewer-status',adStatus,adConfig,serverNow:Date.now()});
+    } else if (data.type === 'ad-finished') {
+      const interval=Math.max(1,Math.min(240,Number(adConfig.intervalMinutes)||3));
+      adConfig.nextAdAt=adConfig.enabled?Date.now()+interval*60000:0;
+      adStatus = { ...adStatus, phase:'score', phaseEndsAt:0, adPending:false, adPlaying:false, viewerSeenAt:Date.now(), estimatedAdAt:0, note:'Advertisement finished; next interval started' };
+      writeJsonAtomic(SETTINGS_FILE,adConfig);
+      broadcast({type:'ad-schedule',adConfig,adStatus,serverNow:Date.now()});
     } else if (data.type === 'announcement-queue' && Number.isInteger(data.count)) {
       broadcast({type:'announcement-queue',count:Math.max(0,data.count),adPlaying:!!data.adPlaying});
     } else if (data.type === 'score' && Number.isInteger(data.index) && data.index >= 0 && typeof data.value === 'number' && Number.isFinite(data.value)) {
@@ -135,7 +151,7 @@ wss.on('connection', ws => {
     } else if (data.type === 'clear-scores') { state.scores = []; saveState(); broadcast({ type: 'state', state }); }
   });
 });
-setInterval(() => broadcast({ type: 'ping', at: Date.now() }), 25000).unref();
+setInterval(() => broadcast({ type: 'ping', at: Date.now(), adConfig, adStatus }), 5000).unref();
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`CDS Results server listening on ${PORT}`);
   if (!ADMIN_TOKEN) console.warn('WARNING: ADMIN_TOKEN is not set. Admin actions are unauthenticated.');
