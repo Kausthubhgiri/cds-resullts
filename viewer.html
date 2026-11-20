@@ -360,7 +360,12 @@ html body #schools-screen .page-count{
   font-size:clamp(10px,.8vw,13px);
   letter-spacing:.1em;
 }
-.skord-watermark{right:var(--scene-x)}
+.skord-watermark{
+  top:clamp(30px,3.4vh,44px);
+  right:clamp(150px,12vw,250px);
+  bottom:auto;
+}
+body:has(#ad-screen.active) .skord-watermark{display:none!important}
 @media(max-width:1000px){html body #participants-screen .participants-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){:root{--scene-x:3vw;--scene-top:1.5vh;--scene-bottom:1.5vh}html body #participants-screen .participants-grid{grid-template-columns:1fr}}
 
@@ -472,7 +477,6 @@ function renderSchoolPage(){
       <div class="school-stat"><strong>${x.events.length}</strong><span>Events represented</span></div>
       <div class="school-stat"><strong>${x.winners}</strong><span>Total winners</span></div>
     </div>
-    <div class="school-events"><b>EVENTS REPRESENTED</b>${x.events.length?esc(x.events.join(' · ')):'No event data'}</div>
   </article>`).join(''):'<div class="empty">No school participation data available.</div>';
   $('schools-page-count').textContent=schoolPages.length>1?`PAGE ${schoolPageIndex+1} / ${schoolPages.length}`:'';
 }
