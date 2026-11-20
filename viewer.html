@@ -222,6 +222,21 @@ body:has(#ad-screen.active){overflow:hidden!important;background:#000!important}
 @media(max-width:900px){.schools-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:9px}.school-summary-card{padding:10px}.school-summary-name{font-size:clamp(13px,2vw,20px);min-height:2.4em}.school-stat{padding:7px}.school-stat strong{font-size:clamp(20px,3vw,30px)}}
 @media(max-width:560px){.schools-head h2{font-size:21px}.schools-summary-grid{gap:7px}.school-summary-card{padding:7px;border-radius:14px}.school-summary-stats{gap:5px}.school-stat span{font-size:8px}.school-stat strong{font-size:19px}.school-events{font-size:8px}}
 
+
+/* One screen at a time: showcase screens own the entire viewport, including the masthead area. */
+.screen:not(.active){z-index:0;pointer-events:none}
+.screen.active{z-index:5;isolation:isolate}
+body:has(#winners-screen.active) .shell,
+body:has(#participants-screen.active) .shell,
+body:has(#schools-screen.active) .shell{display:none!important}
+#winners-screen.active,#participants-screen.active,#schools-screen.active{
+  position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;height:100dvh!important;
+  margin:0!important;padding:3vh 1.6vw 2vh!important;overflow:hidden!important;
+  background:#080b12!important;z-index:100!important;
+}
+#schools-screen.active{background:radial-gradient(ellipse at 50% 0,rgba(201,164,77,.17),transparent 56%),linear-gradient(145deg,#0a101b,#080b12)!important}
+#winners-screen.active,#participants-screen.active{background:radial-gradient(ellipse at 50% 0,rgba(55,112,150,.18),transparent 58%),#080d16!important}
+
 </style></head><body><div class="shell"><header class="top"><div><div class="eyebrow">Capital District Sahodaya · Official Results</div><h1 class="title">CDS SPORTS MEET 2K26</h1></div><div class="live">● LIVE RESULTS</div></header></div>
 <section id="score-screen" class="screen scoreboard active"><div id="podium" class="podium"></div><div id="school-rest" class="rest"></div></section>
 <section id="winners-screen" class="screen winners-screen"><div class="winners-head"><h2>CONGRATULATIONS WINNERS</h2><p>CELEBRATING OUR ACHIEVERS</p></div><div id="winners-grid" class="winners-grid"></div><div id="winner-page-count" class="page-count"></div></section>
@@ -239,7 +254,7 @@ let scores=[],winners=[],registeredSchools=[],participants=[],ws,retry=0;
 let adConfig={enabled:false,intervalMinutes:3,nextAdAt:0},adFiles=[],adIndex=0,adPlaying=false,adDueAt=0,lastAdClock=Date.now(),serverClockOffset=0,lastViewerStatusAt=0;
 let phase='score',phaseTimer=null,phaseEndsAt=0,pausedPhase=null,pausedRemaining=0,scoreReturnTimer=null;
 let winnerQueue=[],pendingWinnerCount=0,winnerPages=[],winnerPageIndex=0,participantGroups=[],participantEventIndex=0,participantOffsets={};
-let schoolPages=[],schoolPageIndex=0,showSchoolsAfterAd=false;
+let schoolPages=[],schoolPageIndex=0,showSchoolsAfterAd=false,scoreBeforeSchools=false,scoreAfterSchools=false;
 let adPending=false,adWaitTimer=null;
 const $=id=>document.getElementById(id);const isRelay=e=>/relay/i.test(e||'');
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
@@ -376,11 +391,21 @@ function advancePhase(){
     startPhase('score',15000);return;
   }
   if(phase==='score'){
-    // Ads are played only after the complete rotation has returned to the scoreboard
-    // and that scoreboard has been displayed for its full 15-second interval.
-    if(adPending && adConfig.enabled && adFiles.length && !winnerQueue.length && !$('announcement').classList.contains('show')){
+    // After participant pages, show the scoreboard for 10 seconds before schools.
+    if(scoreBeforeSchools){
+      scoreBeforeSchools=false;
+      startSchoolShowcase();
+      return;
+    }
+    // After all school pages, hold the scoreboard for 15 seconds. Ads, when due,
+    // are inserted here; otherwise the next full cycle begins with winners/participants.
+    if(scoreAfterSchools && adPending && adConfig.enabled && adFiles.length && !winnerQueue.length && !$('announcement').classList.contains('show')){
+      scoreAfterSchools=false;
       playNextAd();
-    }else if(winners.length>=5)startPhase('winners',15000);
+      return;
+    }
+    scoreAfterSchools=false;
+    if(winners.length>=5)startPhase('winners',15000);
     else startPhase('participants',7000);
     return;
   }
@@ -388,7 +413,8 @@ function advancePhase(){
     if(advanceParticipantCursor()){
       startPhase('participants',7000);
     }else{
-      startSchoolShowcase();
+      scoreBeforeSchools=true;
+      startPhase('score',10000);
     }
     return;
   }
@@ -396,6 +422,7 @@ function advancePhase(){
     if(schoolPageIndex+1<schoolPages.length){
       schoolPageIndex++;renderSchoolPage();phaseEndsAt=Date.now()+10000;phaseTimer=setTimeout(advancePhase,10000);publishViewerStatus();
     }else{
+      scoreAfterSchools=true;
       startPhase('score',15000);
     }
     return;
@@ -448,9 +475,9 @@ $('ad-audio-toggle').addEventListener('click',e=>{
   if(!video.muted)video.play().catch(err=>console.warn('Audio resume failed:',err));
 });
 
-function finishAd(){const video=$('ad-video');video.onended=null;video.onerror=null;video.oncanplay=null;video.pause();video.removeAttribute('src');video.load();$('ad-playback-status').textContent='';$('ad-screen').classList.remove('is-playing');adPlaying=false;adPending=false;lastAdClock=Date.now();if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'ad-finished'}));notifyQueue();if(winnerQueue.length){processWinnerQueue();}else{pausedPhase=null;pausedRemaining=0;showSchoolsAfterAd=false;startPhase('score',15000);}}
+function finishAd(){const video=$('ad-video');video.onended=null;video.onerror=null;video.oncanplay=null;video.pause();video.removeAttribute('src');video.load();$('ad-playback-status').textContent='';$('ad-screen').classList.remove('is-playing');adPlaying=false;adPending=false;lastAdClock=Date.now();if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'ad-finished'}));notifyQueue();if(winnerQueue.length){processWinnerQueue();}else{pausedPhase=null;pausedRemaining=0;showSchoolsAfterAd=false;scoreBeforeSchools=false;scoreAfterSchools=false;startPhase('score',15000);}}
 function updateAdConfig(c){adConfig={enabled:!!c.enabled,intervalMinutes:Math.max(1,Number(c.intervalMinutes)||3),nextAdAt:Number(c.nextAdAt)||0};if(!adConfig.enabled){adPending=false;clearTimeout(adWaitTimer);if(adPlaying)finishAd();}publishViewerStatus();}
-function applyState(s){scores=s.scores||[];winners=s.winners||[];renderScores();renderWinnerPage();if(!phaseTimer&&!pausedPhase)startPhase('score',15000);}
+function applyState(s){scores=s.scores||[];winners=s.winners||[];renderScores();renderWinnerPage();if(!phaseTimer&&!pausedPhase){scoreBeforeSchools=false;scoreAfterSchools=false;startPhase('score',15000);}}
 function connect(){const protocol=location.protocol==='https:'?'wss':'ws';ws=new WebSocket(`${protocol}://${location.host}`);ws.onopen=()=>{retry=0;notifyQueue();};ws.onclose=()=>{setTimeout(connect,Math.min(10000,1000*2**retry++));};ws.onerror=()=>ws.close();ws.onmessage=e=>{let d;try{d=JSON.parse(e.data)}catch{return}if(d.serverNow)serverClockOffset=Number(d.serverNow)-Date.now();if(d.type==='init-state'||d.type==='state'){applyState(d.state||{});if(d.adConfig)updateAdConfig(d.adConfig);}if(d.type==='ad-config'||d.type==='ad-schedule')updateAdConfig(d.adConfig||d.config||{});if(d.type==='ad-list')adFiles=d.ads||[];if(d.type==='score'){scores[d.index]=d.value;renderScores();scoreInterrupt();}if(d.type==='winner'){if(d.winners)winners=d.winners;else if(d.winner)winners.push(d.winner);renderWinnerPage();receiveWinner(d.winner||{});}if(d.type==='ping')return;};}
 window.addEventListener('resize',()=>{renderScores();if(phase==='winners')renderWinnerPage();if(phase==='participants')renderParticipantPage();if(phase==='schools')renderSchoolPage();});
 fetch('/api/state').then(r=>r.json()).then(applyState).catch(()=>{});fetch('/api/schools',{cache:'no-store'}).then(r=>r.json()).then(d=>{registeredSchools=Array.isArray(d.schools)?d.schools:[];renderScores();}).catch(()=>{});loadParticipants();fetchAds();connect();setInterval(loadParticipants,120000);
