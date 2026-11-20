@@ -361,9 +361,9 @@ html body #schools-screen .page-count{
   letter-spacing:.1em;
 }
 .skord-watermark{
-  top:clamp(30px,3.4vh,44px);
-  right:clamp(150px,12vw,250px);
-  bottom:auto;
+  top:auto;
+  right:var(--scene-x);
+  bottom:clamp(12px,1.35vh,22px);
 }
 body:has(#ad-screen.active) .skord-watermark{display:none!important}
 @media(max-width:1000px){html body #participants-screen .participants-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
