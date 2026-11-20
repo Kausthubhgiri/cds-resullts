@@ -366,6 +366,22 @@ html body #schools-screen .page-count{
   bottom:clamp(12px,1.35vh,22px);
 }
 body:has(#ad-screen.active) .skord-watermark{display:none!important}
+/* Keep long participant school names from running into the event details. */
+html body #participants-screen .participant-card .p-school{
+  display:-webkit-box!important;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:2;
+  max-height:2.4em;
+  overflow:hidden!important;
+  text-overflow:ellipsis;
+}
+html body #participants-screen .participant-card .p-chest{
+  display:block!important;
+  white-space:nowrap!important;
+  max-height:none!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
 @media(max-width:1000px){html body #participants-screen .participants-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){:root{--scene-x:3vw;--scene-top:1.5vh;--scene-bottom:1.5vh}html body #participants-screen .participants-grid{grid-template-columns:1fr}}
 
