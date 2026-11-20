@@ -28,89 +28,217 @@
 @media(max-width:600px){.winners-grid,.participants-grid{grid-template-columns:1fr}.participant-card img{width:58px;height:58px}.participant-card .p-name{font-size:clamp(12px,3.3vw,18px)}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 
-
-/* Unified full-screen layout: one shared canvas and consistent alignment */
-html,body{width:100%;height:100%;min-height:100%;margin:0;padding:0;overflow:hidden}
-body{background:#080b12}
-.shell{
-  position:fixed;z-index:50;top:0;left:0;right:0;height:12vh;min-height:70px;
-  padding:1.6vh 2.2vw 1.2vh!important;display:flex;flex-direction:column;
-  justify-content:center;background:linear-gradient(180deg,rgba(8,11,18,.98),rgba(8,11,18,.72),transparent);
+/* Full-screen participant layout: use the available display area efficiently */
+#participants-screen{
+  inset:12vh 1.6vw 2.5vh!important;
+  padding:0 0 2.5vh!important;
+  display:flex;
+  flex-direction:column;
+  min-height:0;
 }
-.top{width:100%;padding:0 0 1vh!important;border-bottom:1px solid rgba(232,199,121,.16)}
-.title{margin:4px 0 0!important;font-size:clamp(20px,2.5vw,40px)!important}
-.eyebrow{font-size:clamp(9px,.8vw,13px)!important}
-.live{font-size:clamp(9px,.75vw,12px)!important}
-.screen{
-  position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;height:100dvh!important;
-  margin:0!important;padding:13vh 2vw 2.2vh!important;box-sizing:border-box!important;
-  display:none!important;opacity:0!important;visibility:hidden!important;pointer-events:none!important;
-  transform:none!important;filter:none!important;overflow:hidden!important;border:0!important;border-radius:0!important;
-  transition:opacity .45s ease!important;z-index:1!important;
+#participants-screen .winners-head{
+  flex:0 0 auto;
+  margin:0 0 clamp(10px,1.4vh,18px);
+  padding:0;
 }
-.screen.active{
-  display:flex!important;opacity:1!important;visibility:visible!important;pointer-events:auto!important;
-  transform:none!important;filter:none!important;z-index:5!important;isolation:isolate;
+#participants-screen .winners-head h2{
+  font-size:clamp(22px,2.7vw,42px);
+  line-height:1.05;
+  margin:0 0 5px;
 }
-/* Scoreboard: use all available space below the common masthead. */
-#score-screen.active{flex-direction:column!important;gap:clamp(8px,1vh,14px)!important}
-#score-screen .podium{
-  flex:0 0 25vh!important;height:25vh!important;min-height:120px!important;max-height:250px!important;
-  margin:0!important;gap:clamp(10px,1vw,18px)!important;
+#participants-screen .winners-head p{
+  margin:4px 0 0;
+  font-size:clamp(10px,.9vw,13px);
+  letter-spacing:.2em;
 }
-#score-screen .rest{
-  flex:1 1 0!important;min-height:0!important;height:auto!important;
-  grid-auto-rows:minmax(0,1fr)!important;align-content:stretch!important;
+#participants-screen .participants-grid{
+  flex:1 1 auto;
+  width:100%;
+  height:auto!important;
+  min-height:0;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  grid-auto-rows:minmax(0,1fr);
+  gap:clamp(9px,1vw,16px);
+  overflow:hidden;
+  align-content:stretch;
 }
-#score-screen .school-card,#score-screen .table-card{min-width:0;min-height:0}
-#score-screen .school-name{overflow-wrap:anywhere}
-#score-screen .table-card .school-name{line-height:1.15}
-/* Winner and participant screens share the same heading, grid and footer alignment. */
-#winners-screen.active,#participants-screen.active,#schools-screen.active{
-  flex-direction:column!important;gap:clamp(9px,1.2vh,17px)!important;
-}
-.winners-head,.schools-head{
-  flex:0 0 auto!important;width:100%;text-align:center!important;
-  margin:0!important;padding:0!important;
-}
-.winners-head h2,.schools-head h2{
-  margin:0!important;font-size:clamp(24px,3vw,44px)!important;line-height:1.08!important;
-}
-.winners-head p,.schools-head p{margin:6px 0 0!important;font-size:clamp(9px,.8vw,12px)!important}
-#winners-screen .winners-grid,#participants-screen .participants-grid,#schools-screen .schools-summary-grid{
-  flex:1 1 0!important;width:100%!important;height:auto!important;min-height:0!important;
-  overflow:hidden!important;align-content:stretch!important;grid-auto-rows:minmax(0,1fr)!important;
-}
-#winners-screen .winners-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:clamp(9px,1vw,16px)!important}
-#participants-screen .participants-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:clamp(9px,1vw,16px)!important}
 #participants-screen .participant-card{
-  width:100%;height:100%;min-width:0;min-height:0;padding:clamp(8px,.9vw,15px);
-  gap:clamp(8px,.85vw,14px);align-items:center;
+  width:100%;
+  height:100%;
+  min-width:0;
+  min-height:0;
+  padding:clamp(8px,.9vw,15px);
+  gap:clamp(8px,.85vw,14px);
+  align-items:center;
 }
-#participants-screen .participant-card img{width:clamp(54px,5.6vw,88px);height:clamp(54px,5.6vw,88px);flex:0 0 auto}
+#participants-screen .participant-card img{
+  width:clamp(54px,5.6vw,88px);
+  height:clamp(54px,5.6vw,88px);
+  border-radius:13px;
+}
 #participants-screen .participant-card>div{min-width:0;flex:1}
 #participants-screen .participant-card .p-name{
-  white-space:normal!important;overflow-wrap:anywhere;word-break:normal;
-  font-size:clamp(12px,1.35vw,22px);line-height:1.12;
+  white-space:nowrap;
+  overflow:visible;
+  text-overflow:clip;
+  line-height:1.12;
+  margin:0;
+}
+#participants-screen .participant-card .p-school{
+  display:block;
+  white-space:normal;
+  overflow:visible;
+  text-overflow:clip;
+  line-height:1.2;
+  max-height:2.4em;
+  overflow-wrap:anywhere;
+  margin-top:6px;
+}
+#participants-screen .participant-card .p-chest{
+  display:block;
+  white-space:normal;
+  overflow:visible;
+  text-overflow:clip;
+  line-height:1.25;
+  max-height:2.5em;
+  overflow-wrap:anywhere;
+  margin-top:5px;
+  font-size:clamp(10px,.82vw,13px);
 }
 #participants-screen .participant-card .p-school,
-#participants-screen .participant-card .p-chest{
-  white-space:normal!important;overflow:visible!important;text-overflow:clip!important;
-  overflow-wrap:anywhere;line-height:1.2;max-height:2.5em;
+#participants-screen .participant-card .p-chest{min-width:0}
+#participants-screen .page-count{bottom:0;right:1vw}
+@media(max-width:1000px){
+  #participants-screen{inset:13vh 2vw 3vh!important}
+  #participants-screen .participants-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #participants-screen .participant-card img{width:clamp(52px,7vw,78px);height:clamp(52px,7vw,78px)}
 }
-#participants-screen .participant-card .p-school{font-size:clamp(10px,.95vw,15px);margin-top:5px}
-#participants-screen .participant-card .p-chest{font-size:clamp(9px,.82vw,13px);margin-top:4px}
-#schools-screen .schools-summary-grid{
-  grid-template-columns:repeat(4,minmax(0,1fr))!important;grid-template-rows:minmax(0,1fr)!important;
-  gap:clamp(9px,1vw,16px)!important;
+@media(max-width:600px){
+  #participants-screen{inset:13vh 2.5vw 3vh!important}
+  #participants-screen .participants-grid{grid-template-columns:1fr;gap:8px}
+  #participants-screen .participant-card{padding:8px 10px;gap:10px}
+  #participants-screen .participant-card img{width:52px;height:52px}
+  #participants-screen .participant-card .p-school{font-size:11px}
+  #participants-screen .participant-card .p-chest{font-size:10px}
 }
-#schools-screen .school-summary-card{height:100%;min-width:0;min-height:0}
-.page-count{
-  position:absolute!important;left:2.2vw!important;right:auto!important;bottom:.65vh!important;
-  margin:0!important;font-size:clamp(10px,.85vw,13px)!important;z-index:8!important;
+
+
+/* Showcase phases: hide the regular masthead and let each phase own its heading. */
+body:has(#participants-screen.active) .top,
+body:has(#winners-screen.active) .top{display:none!important}
+body:has(#participants-screen.active) #participants-screen{
+  inset:3vh 1.6vw 2.5vh!important;
 }
-#score-screen .page-count{display:none!important}
-/* Watermark is fixed over the active canvas and never participates in layout. */
+body:has(#winners-screen.active) #winners-screen{
+  inset:3vh 4vw 3vh!important;
+}
+body:has(#winners-screen.active) #winners-screen .winners-head p{display:none!important}
+body:has(#winners-screen.active) #winners-screen .winners-head{margin-bottom:22px}
+/* Full-screen event and winner showcases */
+#participants-screen,
+#winners-screen {
+  inset: 2vh 1.6vw 2vh !important;
+  padding: 0 !important;
+  display: none;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+#participants-screen.active,
+#winners-screen.active {
+  display: flex;
+}
+#participants-screen .winners-head,
+#winners-screen .winners-head {
+  flex: 0 0 auto;
+  margin: 0 0 clamp(8px, 1.2vh, 18px);
+  padding: 0;
+}
+#participants-screen .participants-grid,
+#winners-screen .winners-grid {
+  flex: 1 1 auto;
+  height: auto !important;
+  min-height: 0;
+  grid-auto-rows: minmax(0, 1fr);
+  align-content: stretch;
+}
+#participants-screen .page-count,
+#winners-screen .page-count {
+  flex: 0 0 auto;
+  margin-top: 4px;
+  line-height: 1.1;
+}
+@media (max-width: 900px) {
+  #participants-screen, #winners-screen { inset: 1.5vh 1.5vw 1.5vh !important; }
+}
+
+/* Premium motion and true full-width scoreboard canvas */
+#score-screen{inset:13.2vh 1.25vw 1.8vh!important;width:auto;max-width:none}
+.shell{padding:2vh 2.2vw 0!important}
+.top{padding-bottom:clamp(8px,1.2vh,16px)}
+#score-screen .podium{gap:clamp(10px,1vw,18px);margin-bottom:clamp(8px,1vh,14px);flex-basis:clamp(135px,25vh,250px)}
+#score-screen .school-card,#score-screen .table-card{border-radius:clamp(14px,1.3vw,22px)}
+#score-screen .rest{gap:clamp(8px,.85vw,15px);padding:2px}
+.screen{transition:opacity .72s cubic-bezier(.22,.75,.25,1),transform .82s cubic-bezier(.2,.8,.2,1),filter .72s ease;will-change:opacity,transform,filter}
+.screen.active{animation:premiumScreenIn .85s cubic-bezier(.2,.8,.2,1) both}
+.participant-card,.winner-card,.school-card,.table-card{transition:transform .42s cubic-bezier(.2,.8,.2,1),box-shadow .42s ease,border-color .42s ease}
+.winner-card{animation:premiumCardIn .72s cubic-bezier(.2,.8,.2,1) both}
+.winner-card:nth-child(2n){animation-delay:.07s}.winner-card:nth-child(3n){animation-delay:.14s}
+@keyframes premiumScreenIn{0%{opacity:0;transform:translate3d(0,18px,0) scale(.992);filter:blur(5px)}100%{opacity:1;transform:translate3d(0,0,0) scale(1);filter:blur(0)}}
+@keyframes premiumCardIn{from{opacity:0;transform:translateY(18px) scale(.985);filter:blur(4px)}to{opacity:1;transform:translateY(0) scale(1);filter:blur(0)}}
+@media(max-width:850px){#score-screen{inset:14vh 1.5vw 2vh!important}}
+@media(prefers-reduced-motion:reduce){.screen.active,.winner-card{animation:none!important}}
+
+/* Reliable full-screen advertisement playback */
+/* Ad phase takes over the entire viewport: no masthead, margins or other screens. */
+body:has(#ad-screen.active) .shell{display:none!important}
+body:has(#ad-screen.active){overflow:hidden!important;background:#000!important}
+#ad-screen.ad-screen{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;height:100dvh!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:#000!important;display:none;align-items:center;justify-content:center;z-index:2147483000!important;opacity:0;transform:none;pointer-events:none}
+#ad-screen.ad-screen.active{display:flex!important;opacity:1!important;transform:none!important;pointer-events:auto!important}
+#ad-video{position:absolute;inset:0;display:block;width:100vw!important;height:100vh!important;height:100dvh!important;max-width:none!important;max-height:none!important;object-fit:contain!important;object-position:center;background:#000}
+#ad-audio-toggle{position:fixed;right:22px;bottom:20px;z-index:2147483001;border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:10px 16px;background:rgba(0,0,0,.65);color:#fff;font:600 14px Inter,Segoe UI,Arial;cursor:pointer}
+#ad-playback-status{position:fixed;left:22px;bottom:20px;z-index:2147483001;color:#fff;background:rgba(0,0,0,.65);padding:9px 13px;border-radius:10px;font:500 13px Inter,Segoe UI,Arial}
+#ad-screen.is-playing #ad-audio-toggle,#ad-screen.is-playing #ad-playback-status{opacity:0;pointer-events:none;transition:opacity .35s ease}
+#ad-screen:not(.is-playing) #ad-audio-toggle,#ad-screen:not(.is-playing) #ad-playback-status{opacity:1}
+
+
+/* School participation cards: four portrait cards per page, shown for 10 seconds */
+.schools-screen{display:flex;flex-direction:column;inset:3vh 1.6vw 2vh!important;padding:0!important;min-height:0;overflow:hidden;background:radial-gradient(ellipse at 50% 0,rgba(201,164,77,.17),transparent 56%),linear-gradient(145deg,#0a101b,#080b12)}
+.schools-head{flex:0 0 auto;text-align:center;margin:0 0 clamp(10px,1.5vh,20px)}
+.schools-head h2{margin:0;color:var(--gold);font-size:clamp(24px,3vw,46px);font-weight:900;letter-spacing:.15em}
+.schools-head p{margin:7px 0 0;color:var(--muted);font-size:clamp(9px,.85vw,13px);letter-spacing:.22em}
+.schools-summary-grid{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:clamp(10px,1.4vw,22px);overflow:hidden}
+.school-summary-card{min-width:0;min-height:0;position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center;padding:clamp(14px,1.7vw,28px) clamp(10px,1.2vw,20px);border:1px solid rgba(232,199,121,.26);border-radius:22px;background:radial-gradient(ellipse at 50% 0,rgba(232,199,121,.16),transparent 48%),linear-gradient(155deg,#1b293b,#0c1421 78%);box-shadow:0 20px 48px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.07);animation:schoolCardIn .7s cubic-bezier(.2,.8,.2,1) both}
+.school-summary-card:nth-child(2){animation-delay:.07s}.school-summary-card:nth-child(3){animation-delay:.14s}.school-summary-card:nth-child(4){animation-delay:.21s}
+.school-card-index{font-size:10px;letter-spacing:.3em;color:var(--gold);font-weight:800}
+.school-summary-name{min-height:3em;display:flex;align-items:center;justify-content:center;margin:12px 0;font-size:clamp(16px,1.5vw,25px);font-weight:900;line-height:1.2;overflow-wrap:anywhere}
+.school-summary-stats{width:100%;display:grid;gap:clamp(7px,1vh,13px)}
+.school-stat{padding:clamp(8px,.9vw,14px);border:1px solid rgba(255,255,255,.08);border-radius:13px;background:rgba(4,8,15,.38)}
+.school-stat strong{display:block;color:#8de0aa;font-size:clamp(24px,2.4vw,39px);font-weight:900;line-height:1.05;font-variant-numeric:tabular-nums}
+.school-stat span{display:block;margin-top:5px;color:#aebbd0;font-size:clamp(9px,.75vw,12px);letter-spacing:.12em;text-transform:uppercase}
+.school-events{margin-top:10px;color:#e1d2aa;font-size:clamp(9px,.82vw,13px);line-height:1.4;overflow-wrap:anywhere}
+.school-events b{display:block;color:var(--gold);font-size:9px;letter-spacing:.16em;margin-bottom:4px}
+@keyframes schoolCardIn{from{opacity:0;transform:translateY(18px) scale(.98);filter:blur(4px)}to{opacity:1;transform:none;filter:blur(0)}}
+@media(max-width:900px){.schools-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:9px}.school-summary-card{padding:10px}.school-summary-name{font-size:clamp(13px,2vw,20px);min-height:2.4em}.school-stat{padding:7px}.school-stat strong{font-size:clamp(20px,3vw,30px)}}
+@media(max-width:560px){.schools-head h2{font-size:21px}.schools-summary-grid{gap:7px}.school-summary-card{padding:7px;border-radius:14px}.school-summary-stats{gap:5px}.school-stat span{font-size:8px}.school-stat strong{font-size:19px}.school-events{font-size:8px}}
+
+
+/* One screen at a time: showcase screens own the entire viewport, including the masthead area. */
+.screen:not(.active){z-index:0;pointer-events:none}
+.screen.active{z-index:5;isolation:isolate}
+body:has(#winners-screen.active) .shell,
+body:has(#participants-screen.active) .shell,
+body:has(#schools-screen.active) .shell{display:none!important}
+#winners-screen.active,#participants-screen.active,#schools-screen.active{
+  position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;height:100dvh!important;
+  margin:0!important;padding:3vh 1.6vw 2vh!important;overflow:hidden!important;
+  background:#080b12!important;z-index:100!important;
+}
+#schools-screen.active{background:radial-gradient(ellipse at 50% 0,rgba(201,164,77,.17),transparent 56%),linear-gradient(145deg,#0a101b,#080b12)!important}
+#winners-screen.active,#participants-screen.active{background:radial-gradient(ellipse at 50% 0,rgba(55,112,150,.18),transparent 58%),#080d16!important}
+
+
+/* Discreet creator watermark: fixed overlay, no layout impact */
 #sgx-watermark{
   position:fixed;right:clamp(12px,1.5vw,24px);bottom:clamp(9px,1.2vh,16px);
   z-index:2147483002;pointer-events:none;user-select:none;
@@ -120,30 +248,6 @@ body{background:#080b12}
   letter-spacing:.22em;text-transform:uppercase;white-space:nowrap;
   text-shadow:0 1px 8px rgba(0,0,0,.35);backdrop-filter:blur(5px);
 }
-/* Ads take the same full viewport, with no shared masthead or padding. */
-body:has(#ad-screen.active) .shell{display:none!important}
-#ad-screen.active{
-  position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;height:100dvh!important;
-  padding:0!important;display:flex!important;align-items:center!important;justify-content:center!important;
-  background:#000!important;z-index:2147483000!important;
-}
-#ad-video{position:absolute;inset:0;width:100vw!important;height:100vh!important;height:100dvh!important;max-width:none!important;max-height:none!important;object-fit:contain!important;background:#000}
-@media(max-width:1050px){
-  #winners-screen .winners-grid,#participants-screen .participants-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
-  #schools-screen .schools-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;grid-template-rows:repeat(2,minmax(0,1fr))!important}
-}
-@media(max-width:650px){
-  .shell{height:11vh;min-height:62px;padding:1vh 3vw!important}
-  .screen{padding:12vh 2.5vw 2.5vh!important}
-  #score-screen .podium{flex-basis:20vh!important;height:20vh!important;min-height:100px!important}
-  #winners-screen .winners-grid,#participants-screen .participants-grid{grid-template-columns:1fr!important}
-  #schools-screen .schools-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;grid-template-rows:repeat(2,minmax(0,1fr))!important}
-  #participants-screen .participant-card{padding:7px 9px}
-  #participants-screen .participant-card img{width:50px;height:50px}
-  #sgx-watermark{font-size:8px;right:9px;bottom:7px}
-}
-@media(prefers-reduced-motion:reduce){.screen{transition:none!important}.participant-card,.winner-card,.school-summary-card{animation:none!important}}
-
 </style></head><body><div class="shell"><header class="top"><div><div class="eyebrow">Capital District Sahodaya · Official Results</div><h1 class="title">CDS SPORTS MEET 2K26</h1></div><div class="live">● LIVE RESULTS</div></header></div>
 <section id="score-screen" class="screen scoreboard active"><div id="podium" class="podium"></div><div id="school-rest" class="rest"></div></section>
 <section id="winners-screen" class="screen winners-screen"><div class="winners-head"><h2>CONGRATULATIONS WINNERS</h2><p>CELEBRATING OUR ACHIEVERS</p></div><div id="winners-grid" class="winners-grid"></div><div id="winner-page-count" class="page-count"></div></section>
