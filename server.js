@@ -15,6 +15,7 @@ let state = { scores: [], winners: [], schools: [] };
 let settings = { enabled:false, intervalMinutes:3, nextAdAt:0 };
 let participants = [];
 let presentation = { active:false, stage:'idle', school:'', position:'', queue:[], current:null, video:null, startedAt:0 };
+let adStatus = null;
 
 function json(res, code, body) { res.writeHead(code, {'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'}); res.end(JSON.stringify(body)); }
 function safeName(value) { return String(value || '').trim().slice(0, 200); }
@@ -89,9 +90,17 @@ function send(ws,payload){ if(ws.readyState===ws.OPEN) ws.send(JSON.stringify(pa
 function broadcast(payload){ for(const client of wss.clients) send(client,payload); }
 function publishState(){ broadcast({type:'state',state,adConfig:settings,presentation,serverNow:Date.now()}); }
 function admin(message) { return !ADMIN_TOKEN || message.token === ADMIN_TOKEN; }
-wss.on('connection', ws => { send(ws,{type:'init-state',state,adConfig:settings,presentation,serverNow:Date.now()}); videos('ADVERTISEMENT','media/ads').then(ads=>send(ws,{type:'ad-list',ads})); winnerVideo().then(video=>send(ws,{type:'winner-video',video}));
+wss.on('connection', ws => { const connectedAt=Date.now(); const heartbeatFresh=adStatus && Date.now()-Number(adStatus.viewerSeenAt||0)<=12000; send(ws,{type:'init-state',state,adConfig:settings,presentation,adStatus:heartbeatFresh?adStatus:null,serverNow:connectedAt}); videos('ADVERTISEMENT','media/ads').then(ads=>send(ws,{type:'ad-list',ads})); winnerVideo().then(video=>send(ws,{type:'winner-video',video}));
   ws.on('message', async buf => { let m; try {m=JSON.parse(String(buf));} catch{return;}
-    if (m.type === 'viewer-status' || m.type === 'announcement-queue' || m.type === 'ad-started' || m.type === 'ad-finished') { broadcast({...m,serverNow:Date.now()}); return; }
+    if (m.type === 'viewer-status') {
+      // Viewer sends this heartbeat periodically. Stamp it on the server and
+      // publish the nested adStatus object expected by host.html.
+      const now = Date.now();
+      adStatus = {...m, viewerSeenAt:now};
+      broadcast({...m, adStatus, serverNow:now});
+      return;
+    }
+    if (m.type === 'announcement-queue' || m.type === 'ad-started' || m.type === 'ad-finished') { broadcast({...m,serverNow:Date.now()}); return; }
     if (m.type === 'presentation-video-ended') { if(presentation.active && presentation.stage==='video') { if(presentation.queue.length){presentation.current=presentation.queue.shift();presentation.school=presentation.current.school;presentation.position=presentation.current.position;presentation.stage='school';}else presentation.stage='select'; await savePresentation(); broadcast({type:'presentation',presentation,serverNow:Date.now()}); } return; }
     if (m.type === 'presentation-next') { if(presentation.active && presentation.stage==='school') { if(presentation.queue.length){presentation.current=presentation.queue.shift();presentation.school=presentation.current.school;presentation.position=presentation.current.position;presentation.stage='school';}else presentation.stage='complete'; await savePresentation(); broadcast({type:'presentation',presentation,serverNow:Date.now()}); } return; }
     if (!admin(m)) { send(ws,{type:'error',message:'Unauthorized admin command'}); return; }
