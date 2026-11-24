@@ -14,7 +14,7 @@ const MIME = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charset
 let state = { scores: [], winners: [], schools: [] };
 let settings = { enabled:false, intervalMinutes:3, nextAdAt:0 };
 let participants = [];
-let presentation = { active:false, stage:'idle', school:'', video:null, startedAt:0 };
+let presentation = { active:false, stage:'idle', school:'', position:'', queue:[], current:null, video:null, startedAt:0 };
 
 function json(res, code, body) { res.writeHead(code, {'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'}); res.end(JSON.stringify(body)); }
 function safeName(value) { return String(value || '').trim().slice(0, 200); }
@@ -26,7 +26,7 @@ async function load() {
   settings = {...settings, ...(await readJson(path.join(DATA,'settings.json'), {}))};
   presentation = {...presentation, ...(await readJson(path.join(DATA,'presentation.json'), {}))};
   // A restart must not leave a projector locked in an orphaned presentation.
-  if (presentation.active) { presentation = {active:false,stage:'idle',school:'',video:null,startedAt:0}; await savePresentation(); }
+  if (presentation.active) { presentation = {active:false,stage:'idle',school:'',position:'',queue:[],current:null,video:null,startedAt:0}; await savePresentation(); }
 }
 const saveState = () => writeJson(path.join(DATA,'state.json'), state);
 const saveParticipants = () => writeJson(path.join(DATA,'participants.json'), participants);
@@ -92,7 +92,8 @@ function admin(message) { return !ADMIN_TOKEN || message.token === ADMIN_TOKEN; 
 wss.on('connection', ws => { send(ws,{type:'init-state',state,adConfig:settings,presentation,serverNow:Date.now()}); videos('ADVERTISEMENT','media/ads').then(ads=>send(ws,{type:'ad-list',ads})); winnerVideo().then(video=>send(ws,{type:'winner-video',video}));
   ws.on('message', async buf => { let m; try {m=JSON.parse(String(buf));} catch{return;}
     if (m.type === 'viewer-status' || m.type === 'announcement-queue' || m.type === 'ad-started' || m.type === 'ad-finished') { broadcast({...m,serverNow:Date.now()}); return; }
-    if (m.type === 'presentation-video-ended') { if(presentation.active && presentation.stage==='video') { presentation.stage='select'; await savePresentation(); broadcast({type:'presentation',presentation,serverNow:Date.now()}); } return; }
+    if (m.type === 'presentation-video-ended') { if(presentation.active && presentation.stage==='video') { if(presentation.queue.length){presentation.current=presentation.queue.shift();presentation.school=presentation.current.school;presentation.position=presentation.current.position;presentation.stage='school';}else presentation.stage='select'; await savePresentation(); broadcast({type:'presentation',presentation,serverNow:Date.now()}); } return; }
+    if (m.type === 'presentation-next') { if(presentation.active && presentation.stage==='school') { if(presentation.queue.length){presentation.current=presentation.queue.shift();presentation.school=presentation.current.school;presentation.position=presentation.current.position;presentation.stage='school';}else presentation.stage='complete'; await savePresentation(); broadcast({type:'presentation',presentation,serverNow:Date.now()}); } return; }
     if (!admin(m)) { send(ws,{type:'error',message:'Unauthorized admin command'}); return; }
     try {
       if (m.type === 'score') { const i=Number(m.index), v=Number(m.value); if(!Number.isInteger(i)||!Number.isFinite(v)) throw new Error('Invalid score'); state.scores[i]=v; await saveState(); broadcast({type:'score',index:i,value:v,serverNow:Date.now()}); return; }
@@ -101,9 +102,9 @@ wss.on('connection', ws => { send(ws,{type:'init-state',state,adConfig:settings,
       if (m.type === 'clear-scores') { state.scores=[]; await saveState(); publishState(); return; }
       if (m.type === 'clear-winners') { state.winners=[]; await saveState(); publishState(); return; }
       if (m.type === 'ad-config') { settings={enabled:!!m.config?.enabled,intervalMinutes:Math.max(1,Math.min(240,Number(m.config?.intervalMinutes)||3)),nextAdAt:Date.now()+Math.max(1,Math.min(240,Number(m.config?.intervalMinutes)||3))*60000}; await saveSettings(); broadcast({type:'ad-config',config:settings,adConfig:settings,serverNow:Date.now()}); return; }
-      if (m.type === 'presentation-start') { const video=await winnerVideo(); if(!video) throw new Error('No supported video found in the WINNERS folder'); presentation={active:true,stage:'video',school:'',video,startedAt:Date.now()}; await savePresentation(); broadcast({type:'presentation',presentation,serverNow:Date.now()}); return; }
-      if (m.type === 'presentation-school') { const school=safeName(m.school); const registration=await liveParticipants(); if(!presentation.active || presentation.stage==='video') throw new Error('Wait for the congratulations video to finish'); if(!schools(registration.participants).includes(school)) throw new Error('Select a registered school'); presentation={...presentation,stage:'school',school}; await savePresentation(); broadcast({type:'presentation',presentation,serverNow:Date.now()}); return; }
-      if (m.type === 'presentation-finish') { presentation={active:false,stage:'idle',school:'',video:null,startedAt:0}; await savePresentation(); broadcast({type:'presentation',presentation,serverNow:Date.now()}); return; }
+      if (m.type === 'presentation-start') { const video=await winnerVideo(); if(!video) throw new Error('No supported video found in the WINNERS folder'); presentation={active:true,stage:'video',school:'',position:'',queue:[],current:null,video,startedAt:Date.now()}; await savePresentation(); broadcast({type:'presentation',presentation,serverNow:Date.now()}); return; }
+      if (m.type === 'presentation-queue') { const school=safeName(m.school),position=safeName(m.position); const registration=await liveParticipants(); if(!presentation.active) throw new Error('Start the congratulations presentation first'); if(!schools(registration.participants).includes(school)) throw new Error('Select a registered school'); if(!['1st Place','2nd Place','3rd Place','Champion','Overall Champion','Special Award'].includes(position)) throw new Error('Select a valid position'); presentation.queue.push({school,position}); await savePresentation(); broadcast({type:'presentation',presentation,serverNow:Date.now()}); return; }
+      if (m.type === 'presentation-finish') { presentation={active:false,stage:'idle',school:'',position:'',queue:[],current:null,video:null,startedAt:0}; await savePresentation(); broadcast({type:'presentation',presentation,serverNow:Date.now()}); return; }
       throw new Error('Unknown command');
     } catch(e) { send(ws,{type:'error',message:e.message}); }
   });
