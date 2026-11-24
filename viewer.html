@@ -441,7 +441,7 @@ const DEFAULT_SCHOOLS=[];
 const PARTICIPANTS_API_URL='/api/participants';
 let scores=[],winners=[],registeredSchools=[],participants=[],ws,retry=0;
 let adConfig={enabled:false,intervalMinutes:3,nextAdAt:0},adFiles=[],adIndex=0,adPlaying=false,adDueAt=0,lastAdClock=Date.now(),serverClockOffset=0,lastViewerStatusAt=0;
-let phase='score',phaseTimer=null,phaseEndsAt=0,pausedPhase=null,pausedRemaining=0,scoreReturnTimer=null;
+let phase='score',phaseTimer=null,phaseEndsAt=0,pausedPhase=null,pausedRemaining=0,scoreReturnTimer=null;let announcementTimer=null;
 let winnerQueue=[],pendingWinnerCount=0,winnerPages=[],winnerPageIndex=0,activeAnnouncementWinner=null,participantGroups=[],participantEventIndex=0,participantOffsets={};
 let schoolPages=[],schoolPageIndex=0,showSchoolsAfterAd=false,scoreBeforeSchools=false,scoreAfterSchools=false;
 let adPending=false,adWaitTimer=null;
@@ -638,7 +638,7 @@ function winnerInterrupt(){if(adPlaying||$('announcement').classList.contains('s
 function processWinnerQueue(){if(adPlaying||!winnerQueue.length)return;clearTimeout(adWaitTimer);adWaitTimer=null;const w=winnerQueue.shift();pendingWinnerCount=winnerQueue.length;notifyQueue();winnerInterrupt();showAnnouncement(w);}
 function notifyQueue(){if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'announcement-queue',count:pendingWinnerCount,adPlaying}));}
 function setAnnouncementPhoto(w){const photo=$('a-photo'),url=winnerPhoto(w);if(!photo)return;photo.onerror=()=>{photo.style.display='none';photo.removeAttribute('src');};if(url){photo.src=url;photo.style.display='block';}else{photo.removeAttribute('src');photo.style.display='none';}}
-function showAnnouncement(w){activeAnnouncementWinner=w;$('a-position').textContent=displayPosition(w.position);setAnnouncementPhoto(w);$('a-name').textContent=isRelay(w.event)?w.school:w.name;$('a-school').textContent=isRelay(w.event)?'RELAY TEAM':w.school;$('a-detail').textContent=[w.event,w.ageCategory,w.gender,w.chest?'Chest No. '+w.chest:''].filter(Boolean).join(' · ');$('announcement').classList.add('show');clearTimeout(announcementTimer);announcementTimer=setTimeout(()=>{$('announcement').classList.remove('show');startPhase('score',5000);scoreReturnTimer=setTimeout(()=>{if(winnerQueue.length)processWinnerQueue();else if(showSchoolsAfterAd)startSchoolShowcase();else resumePhase();},5000);},6500);}
+function showAnnouncement(w){activeAnnouncementWinner=w;$('a-position').textContent=displayPosition(w.position);setAnnouncementPhoto(w);$('a-name').textContent=isRelay(w.event)?w.school:w.name;$('a-school').textContent=isRelay(w.event)?'RELAY TEAM':w.school;$('a-detail').textContent=[w.event,w.ageCategory,w.gender,w.chest?'Chest No. '+w.chest:''].filter(Boolean).join(' · ');$('announcement').classList.add('show');clearTimeout(announcementTimer);announcementTimer=setTimeout(()=>{$('announcement').classList.remove('show');startPhase('score',5000);scoreReturnTimer=setTimeout(()=>{if(winnerQueue.length)processWinnerQueue();else if(showSchoolsAfterAd)startSchoolShowcase();else resumePhase();},5000);},7000);}
 function receiveWinner(w){if(adPlaying||presentationState.active){winnerQueue.push(w);pendingWinnerCount=winnerQueue.length;notifyQueue();return;}winnerQueue.push(w);processWinnerQueue();}
 async function fetchAds(){try{const r=await fetch('/api/ads',{cache:'no-store'});const d=await r.json();adFiles=Array.isArray(d.ads)?d.ads:[];}catch{adFiles=[];}}
 function maybeAd(){
