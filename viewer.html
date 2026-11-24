@@ -431,7 +431,9 @@ const $=id=>document.getElementById(id);const isRelay=e=>/relay/i.test(e||'');
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function displayPosition(p){return ({Gold:'1st',Silver:'2nd',Bronze:'3rd',gold:'1st',silver:'2nd',bronze:'3rd'}[String(p||'')]||String(p||'WINNER'));}
 function safePhoto(url){try{const u=new URL(String(url||''),location.href);return ['http:','https:'].includes(u.protocol)?u.href:'';}catch{return '';}}
-function renderScores(){const schools=[...new Set(registeredSchools.map(name=>String(name||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));const rows=schools.map((name,i)=>({name,score:Number(scores[i]?.score??scores[i]??0),i})).sort((a,b)=>b.score-a.score);const rest=rows.slice(3);$('podium').innerHTML=rows.slice(0,3).map((s,i)=>`<article class="school-card ${['gold','silver','bronze'][i]}"><div class="podium-copy"><div class="school-name">${esc(s.name)}</div><div class="score">${s.score}</div></div><div class="podium-medal">${['🥇','🥈','🥉'][i]}</div></article>`).join('');const grid=$('school-rest');grid.innerHTML=rest.map(s=>`<article class="table-card"><div class="school-name">${esc(s.name)}</div><div class="small-score">${s.score}</div></article>`).join('');let cols=rest.length<=6?3:rest.length<=12?4:rest.length<=20?5:6;cols=Math.min(cols,Math.max(1,rest.length));const rc=Math.ceil(rest.length/cols);const lastCount=rest.length%cols;grid.style.gridTemplateColumns=`repeat(${cols*2},minmax(0,1fr))`;grid.style.gridTemplateRows=`repeat(${Math.max(1,rc)},minmax(0,1fr))`;[...grid.children].forEach(card=>card.style.gridColumn='span 2');if(lastCount===3&&cols>3){grid.children[rest.length-3].style.gridColumnStart=String(cols-2);}}
+function renderScores(){const schools=[...new Set(registeredSchools.map(name=>String(name||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));const rows=schools.map((name,i)=>({name,score:Number(scores[i]?.score??scores[i]??0),i})).sort((a,b)=>b.score-a.score);const rest=rows.slice(3);$('podium').innerHTML=rows.slice(0,3).map((s,i)=>`<article class="school-card ${['gold','silver','bronze'][i]}"><div class="podium-copy"><div class="school-name">${esc(s.name)}</div><div class="score">${s.score}</div></div><div class="podium-medal">${['🥇','🥈','🥉'][i]}</div></article>`).join('');const grid=$('school-rest');grid.innerHTML=rest.map(s=>`<article class="table-card"><div class="school-name">${esc(s.name)}</div><div class="small-score">${s.score}</div></article>`).join('');let cols=rest.length<=6?3:rest.length<=12?4:rest.length<=20?5:6;cols=Math.min(cols,Math.max(1,rest.length));const rc=Math.ceil(rest.length/cols);const lastCount=rest.length%cols;grid.style.gridTemplateColumns=`repeat(${cols*2},minmax(0,1fr))`;grid.style.gridTemplateRows=`repeat(${Math.max(1,rc)},minmax(0,1fr))`;[...grid.children].forEach(card=>card.style.gridColumn='span 2');
+// Center an incomplete final row without changing any card's width.
+if(lastCount===3&&cols>3){const firstLast=rest.length-3;const centeredStart=cols-2;for(let j=0;j<3;j++){const colStart=centeredStart+(j*2);grid.children[firstLast+j].style.gridColumn=`${colStart} / span 2`;}}}
 function winnerCapacity(){const w=window.innerWidth,h=window.innerHeight;const cols=w<650?1:w<1050?2:4;const rows=h<650?2:h<850?3:4;return Math.max(1,cols*rows);}
 function buildWinnerPages(){const ordered=[...winners].sort((a,b)=>new Date(a.createdAt||0)-new Date(b.createdAt||0));const size=winnerCapacity();winnerPages=[];for(let i=0;i<ordered.length;i+=size)winnerPages.push(ordered.slice(i,i+size));if(!winnerPages.length)winnerPages=[[]];}
 function renderWinnerPage(){buildWinnerPages();winnerPageIndex=Math.min(winnerPageIndex,winnerPages.length-1);const page=winnerPages[winnerPageIndex]||[];$('winners-grid').innerHTML=page.length?page.map(w=>`<article class="winner-card"><div class="medal">${esc(displayPosition(w.position))}</div>${winnerPhoto(w)?`<img class="winner-photo" src="${esc(winnerPhoto(w))}" alt="${esc(w.name||'Winner')}" onerror="this.style.display='none'">`:''}<div class="winner-name">${esc(isRelay(w.event)?w.school:w.name)}</div><div class="winner-school">${esc(isRelay(w.event)?'Relay Team':w.school)}</div><div class="winner-meta">${esc(w.event)} · ${esc(w.ageCategory||'')}</div></article>`).join(''):'<div class="empty">Winners will appear here after announcements.</div>';$('winner-page-count').textContent=winnerPages.length>1?`PAGE ${winnerPageIndex+1} / ${winnerPages.length}`:'';}
@@ -463,10 +465,17 @@ function advanceParticipantCursor(){
     return true;
   }
 
-  // This event is complete. Return to the scoreboard now; the next
-  // participant phase will continue with the following event.
+  // Move directly to the next event's first page. Keep the entire
+  // participant showcase together; do not insert a scoreboard between events.
   participantOffsets[event]=0;
-  participantEventIndex=(participantEventIndex+1)%participantGroups.length;
+  if(participantEventIndex+1<participantGroups.length){
+    participantEventIndex++;
+    return true;
+  }
+
+  // Every event has been shown. Reset for the next rotation cycle.
+  participantEventIndex=0;
+  for(const [groupEvent] of participantGroups)participantOffsets[groupEvent]=0;
   return false;
 }
 function renderParticipantPage(){
@@ -570,8 +579,11 @@ function publishViewerStatus(){
 function advancePhase(){
   phaseTimer=null;
   if(phase==='winners'){
-    if(winnerPageIndex+1<winnerPages.length){winnerPageIndex++;renderWinnerPage();phaseEndsAt=Date.now()+15000;phaseTimer=setTimeout(advancePhase,15000);return;}
-    startPhase('score',15000);return;
+    if(winnerPageIndex+1<winnerPages.length){winnerPageIndex++;renderWinnerPage();phaseEndsAt=Date.now()+15000;phaseTimer=setTimeout(advancePhase,15000);publishViewerStatus();return;}
+    // Winners flow straight into participants; no extra scoreboard screen here.
+    participantEventIndex=0;
+    for(const [event] of participantGroups)participantOffsets[event]=0;
+    startPhase('participants',7000);return;
   }
   if(phase==='score'){
     // After participant pages, show the scoreboard for 10 seconds before schools.
@@ -668,3 +680,7 @@ window.addEventListener('resize',()=>{renderScores();if(phase==='winners')render
 fetch('/api/state').then(r=>r.json()).then(applyState).catch(()=>{});fetch('/api/schools',{cache:'no-store'}).then(r=>r.json()).then(d=>{registeredSchools=Array.isArray(d.schools)?d.schools:[];renderScores();}).catch(()=>{});loadParticipants();fetchAds();connect();setInterval(loadParticipants,120000);
 setInterval(()=>{if(!adPlaying)maybeAd();publishViewerStatus();},1000);
 </script></body></html>
+
+<style>
+#score-screen .table-card .school-name{overflow-wrap:normal!important;word-break:normal!important;hyphens:none;}
+</style>
