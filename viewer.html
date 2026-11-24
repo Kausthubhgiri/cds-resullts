@@ -401,6 +401,28 @@ html body #participants-screen .participant-card .p-chest{
 @media(max-width:1000px){html body #participants-screen .participants-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){:root{--scene-x:3vw;--scene-top:1.5vh;--scene-bottom:1.5vh}html body #participants-screen .participants-grid{grid-template-columns:1fr}}
 
+
+/* Winner announcement is the top-most presentation layer, including over ads. */
+html body #announcement.announcement{
+  position:fixed!important;
+  inset:0!important;
+  z-index:2147483647!important;
+  isolation:isolate!important;
+}
+html body #announcement.announcement.show{
+  opacity:1!important;
+  visibility:visible!important;
+  pointer-events:auto!important;
+}
+html body #announcement.announcement:not(.show){
+  visibility:hidden!important;
+  pointer-events:none!important;
+}
+/* The doubled track grid keeps each card at its normal width; the final
+   three-card row is shifted inward by one half-card on wider grids. */
+#score-screen .rest{grid-auto-flow:row; grid-auto-columns:minmax(0,1fr)}
+#score-screen .rest .table-card{min-width:0}
+
 </style></head><body><div class="shell"><header class="top"><div><div class="eyebrow">Capital District Sahodaya · Official Results</div><h1 class="title">CDS SPORTS MEET 2K26</h1></div><div class="live">● LIVE RESULTS</div></header></div>
 <section id="score-screen" class="screen scoreboard active"><div id="podium" class="podium"></div><div id="school-rest" class="rest"></div></section>
 <section id="winners-screen" class="screen winners-screen"><div class="winners-head"><h2>CONGRATULATIONS WINNERS</h2><p>CELEBRATING OUR ACHIEVERS</p></div><div id="winners-grid" class="winners-grid"></div><div id="winner-page-count" class="page-count"></div></section>
@@ -425,7 +447,26 @@ const $=id=>document.getElementById(id);const isRelay=e=>/relay/i.test(e||'');
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function displayPosition(p){return ({Gold:'1st',Silver:'2nd',Bronze:'3rd',gold:'1st',silver:'2nd',bronze:'3rd'}[String(p||'')]||String(p||'WINNER'));}
 function safePhoto(url){try{const u=new URL(String(url||''),location.href);return ['http:','https:'].includes(u.protocol)?u.href:'';}catch{return '';}}
-function renderScores(){const schools=[...new Set(registeredSchools.map(name=>String(name||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));const rows=schools.map((name,i)=>({name,score:Number(scores[i]?.score??scores[i]??0),i})).sort((a,b)=>b.score-a.score);const rest=rows.slice(3);$('podium').innerHTML=rows.slice(0,3).map((s,i)=>`<article class="school-card ${['gold','silver','bronze'][i]}"><div class="podium-copy"><div class="school-name">${esc(s.name)}</div><div class="score">${s.score}</div></div><div class="podium-medal">${['🥇','🥈','🥉'][i]}</div></article>`).join('');const grid=$('school-rest');grid.innerHTML=rest.map(s=>`<article class="table-card"><div class="school-name">${esc(s.name)}</div><div class="small-score">${s.score}</div></article>`).join('');let cols=rest.length<=6?3:rest.length<=12?4:rest.length<=20?5:6;cols=Math.min(cols,Math.max(1,rest.length));const rc=Math.ceil(rest.length/cols);grid.style.gridTemplateColumns=`repeat(${cols},minmax(0,1fr))`;grid.style.gridTemplateRows=`repeat(${Math.max(1,rc)},minmax(0,1fr))`;}
+function renderScores(){const schools=[...new Set(registeredSchools.map(name=>String(name||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));const rows=schools.map((name,i)=>({name,score:Number(scores[i]?.score??scores[i]??0),i})).sort((a,b)=>b.score-a.score);const rest=rows.slice(3);$('podium').innerHTML=rows.slice(0,3).map((s,i)=>`<article class="school-card ${['gold','silver','bronze'][i]}"><div class="podium-copy"><div class="school-name">${esc(s.name)}</div><div class="score">${s.score}</div></div><div class="podium-medal">${['🥇','🥈','🥉'][i]}</div></article>`).join('');const grid=$('school-rest');grid.innerHTML=rest.map(s=>`<article class="table-card"><div class="school-name">${esc(s.name)}</div><div class="small-score">${s.score}</div></article>`).join('');let cols=rest.length<=6?3:rest.length<=12?4:rest.length<=20?5:6;cols=Math.min(cols,Math.max(1,rest.length));const rc=Math.ceil(rest.length/cols);const lastRowCount=rest.length-(rc-1)*cols;
+  // Give each school card two of the doubled grid tracks. If the final row
+  // contains exactly three cards and is genuinely incomplete, position that
+  // three-card group in the middle with equal empty space on both sides.
+  grid.style.gridTemplateColumns=`repeat(${cols*2},minmax(0,1fr))`;
+  grid.style.gridTemplateRows=`repeat(${Math.max(1,rc)},minmax(0,1fr))`;
+  const centerThreeInLastRow=lastRowCount===3 && rest.length>cols;
+  const centeredStartTrack=Math.floor((cols*2-6)/2)+1;
+  grid.querySelectorAll('.table-card').forEach((card,index)=>{
+    card.style.gridColumn='span 2';
+    card.style.gridRow='';
+    if(centerThreeInLastRow && index>=(rc-1)*cols){
+      const position=index-(rc-1)*cols;
+      card.style.gridColumn=`${centeredStartTrack+position*2} / span 2`;
+      card.style.gridRow=String(rc);
+      card.style.justifySelf='stretch';
+    }else{
+      card.style.justifySelf='stretch';
+    }
+  });}
 function winnerCapacity(){const w=window.innerWidth,h=window.innerHeight;const cols=w<650?1:w<1050?2:4;const rows=h<650?2:h<850?3:4;return Math.max(1,cols*rows);}
 function buildWinnerPages(){const ordered=[...winners].sort((a,b)=>new Date(a.createdAt||0)-new Date(b.createdAt||0));const size=winnerCapacity();winnerPages=[];for(let i=0;i<ordered.length;i+=size)winnerPages.push(ordered.slice(i,i+size));if(!winnerPages.length)winnerPages=[[]];}
 function renderWinnerPage(){buildWinnerPages();winnerPageIndex=Math.min(winnerPageIndex,winnerPages.length-1);const page=winnerPages[winnerPageIndex]||[];$('winners-grid').innerHTML=page.length?page.map(w=>`<article class="winner-card"><div class="medal">${esc(displayPosition(w.position))}</div>${!isRelay(w.event)&&safePhoto(w.photoUrl)?`<img class="winner-photo" src="${esc(safePhoto(w.photoUrl))}" alt="${esc(w.name||'Winner')}" onerror="this.style.display='none'">`:''}<div class="winner-name">${esc(isRelay(w.event)?w.school:w.name)}</div><div class="winner-school">${esc(isRelay(w.event)?'Relay Team':w.school)}</div><div class="winner-meta">${esc(w.event)} · ${esc(w.ageCategory||'')}</div></article>`).join(''):'<div class="empty">Winners will appear here after announcements.</div>';$('winner-page-count').textContent=winnerPages.length>1?`PAGE ${winnerPageIndex+1} / ${winnerPages.length}`:'';}
