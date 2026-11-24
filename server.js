@@ -32,7 +32,21 @@ const saveState = () => writeJson(path.join(DATA,'state.json'), state);
 const saveParticipants = () => writeJson(path.join(DATA,'participants.json'), participants);
 const saveSettings = () => writeJson(path.join(DATA,'settings.json'), settings);
 const savePresentation = () => writeJson(path.join(DATA,'presentation.json'), presentation);
-function schools() { return [...new Set([...(state.schools || []), ...participants.map(p=>safeName(p.school))].filter(Boolean))].sort((a,b)=>a.localeCompare(b)); }
+function schools(rows=participants) { return [...new Set([...(state.schools || []), ...rows.map(p=>safeName(p.school))].filter(Boolean))].sort((a,b)=>a.localeCompare(b)); }
+async function liveParticipants() {
+  const endpoint = process.env.PARTICIPANTS_API_URL;
+  if (!endpoint) return { participants, source:'saved participants' };
+  try {
+    const headers = {accept:'application/json'};
+    if (process.env.PARTICIPANTS_API_TOKEN) headers.authorization = `Bearer ${process.env.PARTICIPANTS_API_TOKEN}`;
+    const response = await fetch(endpoint, {headers, signal:AbortSignal.timeout(10000)});
+    if (!response.ok) throw new Error(`Registration API returned ${response.status}`);
+    const body = await response.json();
+    const rows = Array.isArray(body) ? body : (body.participants || body.results || body.data || []);
+    if (!Array.isArray(rows)) throw new Error('Registration API response is not a participant list');
+    return {participants:rows,source:'registration API'};
+  } catch (error) { console.warn('Registration API unavailable; using saved participants:', error.message); return {participants,source:'saved participants (registration API unavailable)'}; }
+}
 async function videos(folder, prefix) { try { const entries = await fsp.readdir(path.join(ROOT,folder), {withFileTypes:true}); return entries.filter(e=>e.isFile() && VIDEO_EXT.has(path.extname(e.name).toLowerCase())).sort((a,b)=>a.name.localeCompare(b.name)).map(e=>({name:e.name,url:`/${prefix}/${encodeURIComponent(e.name)}`})); } catch { return []; } }
 async function winnerVideo() { return (await videos('WINNERS','media/winners'))[0] || null; }
 
@@ -41,11 +55,11 @@ const server = http.createServer(async (req,res) => {
   const pathname = decodeURIComponent(url.pathname);
   if (pathname === '/health') return json(res,200,{ok:true});
   if (pathname === '/api/state') return json(res,200,{...state,presentation});
-  if (pathname === '/api/schools') return json(res,200,{schools:schools()});
+  if (pathname === '/api/schools') { const source=await liveParticipants(); return json(res,200,{schools:schools(source.participants),source:source.source}); }
   if (pathname === '/api/ads') return json(res,200,{ads:await videos('ADVERTISEMENT','media/ads')});
   if (pathname === '/api/winner-video') return json(res,200,{video:await winnerVideo()});
   if (pathname === '/api/participants') {
-    if (req.method === 'GET') return json(res,200,{participants,source:'saved participants'});
+    if (req.method === 'GET') return json(res,200,await liveParticipants());
     if (req.method === 'POST') {
       if (!isAdminHeader(req)) return json(res,401,{error:'Unauthorized'});
       let raw=''; req.on('data',c=>raw+=c); req.on('end',async()=>{ try { const body=JSON.parse(raw); if(!Array.isArray(body.participants)) throw new Error('participants must be an array'); participants=body.participants; await saveParticipants(); broadcast({type:'state',state,adConfig:settings,presentation,serverNow:Date.now()}); json(res,200,{ok:true,count:participants.length}); } catch(e) { json(res,400,{error:e.message}); } }); return;
@@ -88,7 +102,7 @@ wss.on('connection', ws => { send(ws,{type:'init-state',state,adConfig:settings,
       if (m.type === 'clear-winners') { state.winners=[]; await saveState(); publishState(); return; }
       if (m.type === 'ad-config') { settings={enabled:!!m.config?.enabled,intervalMinutes:Math.max(1,Math.min(240,Number(m.config?.intervalMinutes)||3)),nextAdAt:Date.now()+Math.max(1,Math.min(240,Number(m.config?.intervalMinutes)||3))*60000}; await saveSettings(); broadcast({type:'ad-config',config:settings,adConfig:settings,serverNow:Date.now()}); return; }
       if (m.type === 'presentation-start') { const video=await winnerVideo(); if(!video) throw new Error('No supported video found in the WINNERS folder'); presentation={active:true,stage:'video',school:'',video,startedAt:Date.now()}; await savePresentation(); broadcast({type:'presentation',presentation,serverNow:Date.now()}); return; }
-      if (m.type === 'presentation-school') { const school=safeName(m.school); if(!presentation.active || presentation.stage==='video') throw new Error('Wait for the congratulations video to finish'); if(!schools().includes(school)) throw new Error('Select a registered school'); presentation={...presentation,stage:'school',school}; await savePresentation(); broadcast({type:'presentation',presentation,serverNow:Date.now()}); return; }
+      if (m.type === 'presentation-school') { const school=safeName(m.school); const registration=await liveParticipants(); if(!presentation.active || presentation.stage==='video') throw new Error('Wait for the congratulations video to finish'); if(!schools(registration.participants).includes(school)) throw new Error('Select a registered school'); presentation={...presentation,stage:'school',school}; await savePresentation(); broadcast({type:'presentation',presentation,serverNow:Date.now()}); return; }
       if (m.type === 'presentation-finish') { presentation={active:false,stage:'idle',school:'',video:null,startedAt:0}; await savePresentation(); broadcast({type:'presentation',presentation,serverNow:Date.now()}); return; }
       throw new Error('Unknown command');
     } catch(e) { send(ws,{type:'error',message:e.message}); }
