@@ -66,3 +66,22 @@ Open `http://localhost:3000/host.html` and `http://localhost:3000/viewer.html`.
 - Winner announcements interrupt normal rotation. During an ad, announcements are queued and shown after the video completes.
 - Place video files (`.mp4`, `.webm`, `.ogg`, `.mov`, `.m4v`) in an `ADVERTISEMENT` folder at the repository root. The host panel controls ads ON/OFF and the interval in minutes. Ad settings persist in `/data/settings.json`.
 - Ensure the Railway deployment includes the `ADVERTISEMENT` directory.
+
+## Winner Congratulations mode
+
+Create a `WINNERS` folder beside `server.js` and place exactly one main congratulations video in it. The filename is not important; the server discovers the first supported video alphabetically. Supported extensions are `.mp4`, `.webm`, `.ogg`, `.mov`, and `.m4v`.
+
+```text
+WINNERS/
+  congratulations-final.mp4
+```
+
+From the host console, use **Winner Congratulations**:
+
+1. Click **Play congratulations video**. The viewer immediately enters a locked, full-screen presentation and interrupts any advertisement.
+2. When the video ends, choose a registered school and click **Animate school name**.
+3. The cinematic school name stays on screen until you choose another school or click **Finish presentation**.
+
+While the presentation is active, the scoreboard, winner pages, participant pages, school pages, advertisements, and ordinary winner overlays are hidden. Advertisement playback is safely stopped, score changes continue to be saved and broadcast in the background, and ordinary winner announcements are queued. Clicking **Finish presentation** returns the viewer to the latest live scoreboard, then resumes queued announcements and normal rotation.
+
+The presentation start, school selection, and finish messages are authenticated with `ADMIN_TOKEN`, just like other host actions. Video files are served through `/media/winners/...` with HTTP byte-range support, so seeking and large-file playback work on Railway and common browsers. Commit/deploy the `WINNERS` folder with the service; Railway volumes are for persistent state, not packaged video files.
