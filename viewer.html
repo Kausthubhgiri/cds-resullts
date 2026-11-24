@@ -405,6 +405,23 @@ html body #participants-screen .participant-card .p-chest{
 html body #announcement{position:fixed!important;inset:0!important;z-index:2147483647!important;isolation:isolate!important}
 html body #announcement.show{opacity:1!important;pointer-events:auto!important}
 html body #announcement .announce-card{position:relative;z-index:1}
+
+/* Host-triggered congratulations presentation: separate from the regular winner ticker/list. */
+#presentation-screen{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;height:100dvh!important;z-index:2147483005!important;display:none;align-items:center;justify-content:center;overflow:hidden;background:radial-gradient(ellipse at 50% 0,rgba(211,170,82,.24),transparent 58%),linear-gradient(145deg,#101a2a,#05080e)!important;opacity:1!important;transform:none!important;pointer-events:auto!important}
+#presentation-screen.active{display:flex!important}
+#presentation-screen .presentation-video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
+#presentation-screen .presentation-audio{position:absolute;right:24px;bottom:22px;z-index:3;border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:10px 16px;background:rgba(0,0,0,.68);color:#fff;font:700 14px Inter,Arial;cursor:pointer}
+#presentation-screen .presentation-stage{position:relative;z-index:2;width:min(1100px,90vw);padding:clamp(28px,5vw,70px);text-align:center;border:1px solid rgba(232,199,121,.55);border-radius:30px;background:radial-gradient(ellipse at 50% 0,rgba(190,143,55,.28),transparent 62%),linear-gradient(145deg,rgba(27,36,53,.96),rgba(6,10,17,.97));box-shadow:0 0 100px rgba(204,158,68,.2);animation:congratsReveal .9s cubic-bezier(.2,.8,.2,1) both}
+#presentation-screen .presentation-kicker{color:var(--gold);font-size:clamp(11px,1vw,15px);letter-spacing:.38em;font-weight:800}
+#presentation-screen .presentation-title{margin:18px 0;color:#f8e8bd;font-size:clamp(34px,6vw,78px);font-weight:950;letter-spacing:.04em;text-shadow:0 8px 35px rgba(232,199,121,.18)}
+#presentation-screen .presentation-school{font-size:clamp(27px,5vw,64px);font-weight:900;line-height:1.12;overflow-wrap:anywhere}
+#presentation-screen .presentation-position{display:inline-block;margin-top:24px;padding:12px 28px;border:1px solid rgba(232,199,121,.55);border-radius:999px;color:#f1d38b;background:rgba(232,199,121,.1);font-size:clamp(17px,2.2vw,30px);font-weight:900;letter-spacing:.16em;text-transform:uppercase}
+#presentation-screen .presentation-sub{margin-top:22px;color:#aebbd0;font-size:clamp(11px,1vw,15px);letter-spacing:.25em}
+#presentation-screen .presentation-confetti{position:absolute;inset:0;pointer-events:none;opacity:.6;background-image:radial-gradient(circle,rgba(255,226,151,.9) 1px,transparent 2px),radial-gradient(circle,rgba(255,255,255,.7) 1px,transparent 2px);background-size:73px 91px,113px 137px;background-position:0 0,31px 47px;animation:confettiDrift 8s linear infinite}
+@keyframes congratsReveal{from{opacity:0;transform:translateY(28px) scale(.96);filter:blur(8px)}to{opacity:1;transform:none;filter:blur(0)}}
+@keyframes confettiDrift{from{transform:translateY(-18px)}to{transform:translateY(28px)}}
+@media(prefers-reduced-motion:reduce){#presentation-screen .presentation-stage,#presentation-screen .presentation-confetti{animation:none!important}}
+
 </style></head><body><div class="shell"><header class="top"><div><div class="eyebrow">Capital District Sahodaya · Official Results</div><h1 class="title">CDS SPORTS MEET 2K26</h1></div><div class="live">● LIVE RESULTS</div></header></div>
 <section id="score-screen" class="screen scoreboard active"><div id="podium" class="podium"></div><div id="school-rest" class="rest"></div></section>
 <section id="winners-screen" class="screen winners-screen"><div class="winners-head"><h2>CONGRATULATIONS WINNERS</h2><p>CELEBRATING OUR ACHIEVERS</p></div><div id="winners-grid" class="winners-grid"></div><div id="winner-page-count" class="page-count"></div></section>
@@ -415,6 +432,7 @@ html body #announcement .announce-card{position:relative;z-index:1}
 <div id="schools-page-count" class="page-count"></div>
 </section>
 <section id="ad-screen" class="screen ad-screen"><video id="ad-video" playsinline webkit-playsinline preload="auto" muted></video><div id="ad-playback-status">Loading advertisement…</div><button id="ad-audio-toggle" type="button">Enable sound</button></section>
+<section id="presentation-screen" aria-live="polite"><video id="presentation-video" class="presentation-video" playsinline webkit-playsinline preload="auto"></video><div id="presentation-confetti" class="presentation-confetti" hidden></div><div id="presentation-stage" class="presentation-stage" hidden><div class="presentation-kicker">CAPITAL DISTRICT SAHODAYA · SPORTS MEET 2K26</div><div class="presentation-title" id="presentation-title">CONGRATULATIONS</div><div class="presentation-school" id="presentation-school-name"></div><div class="presentation-position" id="presentation-position-name"></div><div class="presentation-sub" id="presentation-sub">CELEBRATING EXCELLENCE</div></div><button id="presentation-audio" class="presentation-audio" type="button" hidden>Enable sound</button></section>
 <div id="announcement" class="announcement"><div class="announce-card"><div class="announce-kicker">CDS SPORTS MEET 2K26 · OFFICIAL ANNOUNCEMENT</div><div id="a-position" class="announce-position">GOLD</div><img id="a-photo" class="announce-photo" alt="Winner photo"><div id="a-name" class="announce-name"></div><div id="a-school" class="announce-school"></div><div id="a-detail" class="announce-detail"></div></div></div>
 <div class="skord-watermark" aria-hidden="true">MADE BY SKORD GFX</div>
 <script>
@@ -427,21 +445,20 @@ let phase='score',phaseTimer=null,phaseEndsAt=0,pausedPhase=null,pausedRemaining
 let winnerQueue=[],pendingWinnerCount=0,winnerPages=[],winnerPageIndex=0,activeAnnouncementWinner=null,participantGroups=[],participantEventIndex=0,participantOffsets={};
 let schoolPages=[],schoolPageIndex=0,showSchoolsAfterAd=false,scoreBeforeSchools=false,scoreAfterSchools=false;
 let adPending=false,adWaitTimer=null;
+let presentationState={active:false,stage:'idle'},presentationTimer=null,presentationVideoUrl='';
 const $=id=>document.getElementById(id);const isRelay=e=>/relay/i.test(e||'');
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function displayPosition(p){return ({Gold:'1st',Silver:'2nd',Bronze:'3rd',gold:'1st',silver:'2nd',bronze:'3rd'}[String(p||'')]||String(p||'WINNER'));}
 function safePhoto(url){try{const u=new URL(String(url||''),location.href);return ['http:','https:'].includes(u.protocol)?u.href:'';}catch{return '';}}
-function renderScores(){const schools=[...new Set(registeredSchools.map(name=>String(name||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));const rows=schools.map((name,i)=>({name,score:Number(scores[i]?.score??scores[i]??0),i})).sort((a,b)=>b.score-a.score);const rest=rows.slice(3);$('podium').innerHTML=rows.slice(0,3).map((s,i)=>`<article class="school-card ${['gold','silver','bronze'][i]}"><div class="podium-copy"><div class="school-name">${esc(s.name)}</div><div class="score">${s.score}</div></div><div class="podium-medal">${['🥇','🥈','🥉'][i]}</div></article>`).join('');const grid=$('school-rest');grid.innerHTML=rest.map(s=>`<article class="table-card"><div class="school-name">${esc(s.name)}</div><div class="small-score">${s.score}</div></article>`).join('');let cols=rest.length<=6?3:rest.length<=12?4:rest.length<=20?5:6;cols=Math.min(cols,Math.max(1,rest.length));const rc=Math.ceil(rest.length/cols);const lastCount=rest.length%cols;grid.style.gridTemplateColumns=`repeat(${cols*2},minmax(0,1fr))`;grid.style.gridTemplateRows=`repeat(${Math.max(1,rc)},minmax(0,1fr))`;[...grid.children].forEach(card=>card.style.gridColumn='span 2');
-// Center an incomplete final row without changing any card's width.
-if(lastCount===3&&cols>3){const firstLast=rest.length-3;const centeredStart=cols-2;for(let j=0;j<3;j++){const colStart=centeredStart+(j*2);grid.children[firstLast+j].style.gridColumn=`${colStart} / span 2`;}}}
+function renderScores(){const schools=[...new Set(registeredSchools.map(name=>String(name||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));const rows=schools.map((name,i)=>({name,score:Number(scores[i]?.score??scores[i]??0),i})).sort((a,b)=>b.score-a.score);const rest=rows.slice(3);$('podium').innerHTML=rows.slice(0,3).map((s,i)=>`<article class="school-card ${['gold','silver','bronze'][i]}"><div class="podium-copy"><div class="school-name">${esc(s.name)}</div><div class="score">${s.score}</div></div><div class="podium-medal">${['🥇','🥈','🥉'][i]}</div></article>`).join('');const grid=$('school-rest');grid.innerHTML=rest.map(s=>`<article class="table-card"><div class="school-name">${esc(s.name)}</div><div class="small-score">${s.score}</div></article>`).join('');let cols=rest.length<=6?3:rest.length<=12?4:rest.length<=20?5:6;cols=Math.min(cols,Math.max(1,rest.length));const rc=Math.ceil(rest.length/cols);const lastCount=rest.length%cols;grid.style.gridTemplateColumns=`repeat(${cols*2},minmax(0,1fr))`;grid.style.gridTemplateRows=`repeat(${Math.max(1,rc)},minmax(0,1fr))`;[...grid.children].forEach(card=>card.style.gridColumn='span 2');if(lastCount===3&&cols>3){grid.children[rest.length-3].style.gridColumnStart=String(cols-2);}}
 function winnerCapacity(){const w=window.innerWidth,h=window.innerHeight;const cols=w<650?1:w<1050?2:4;const rows=h<650?2:h<850?3:4;return Math.max(1,cols*rows);}
 function buildWinnerPages(){const ordered=[...winners].sort((a,b)=>new Date(a.createdAt||0)-new Date(b.createdAt||0));const size=winnerCapacity();winnerPages=[];for(let i=0;i<ordered.length;i+=size)winnerPages.push(ordered.slice(i,i+size));if(!winnerPages.length)winnerPages=[[]];}
 function renderWinnerPage(){buildWinnerPages();winnerPageIndex=Math.min(winnerPageIndex,winnerPages.length-1);const page=winnerPages[winnerPageIndex]||[];$('winners-grid').innerHTML=page.length?page.map(w=>`<article class="winner-card"><div class="medal">${esc(displayPosition(w.position))}</div>${winnerPhoto(w)?`<img class="winner-photo" src="${esc(winnerPhoto(w))}" alt="${esc(w.name||'Winner')}" onerror="this.style.display='none'">`:''}<div class="winner-name">${esc(isRelay(w.event)?w.school:w.name)}</div><div class="winner-school">${esc(isRelay(w.event)?'Relay Team':w.school)}</div><div class="winner-meta">${esc(w.event)} · ${esc(w.ageCategory||'')}</div></article>`).join(''):'<div class="empty">Winners will appear here after announcements.</div>';$('winner-page-count').textContent=winnerPages.length>1?`PAGE ${winnerPageIndex+1} / ${winnerPages.length}`:'';}
-function normalizeParticipant(r){const name=r.name??r.Name??r.participantName??r.participant_name??'';const school=r.school??r.School??r.schoolName??r.school_name??'';let ev=r.event??r.Event??r.events??r.eventName??r.event_name??'';const events=Array.isArray(ev)?ev.map(x=>typeof x==='string'?x:(x.name||x.event||'')):String(ev).split(/[,;|]/).map(x=>x.trim()).filter(Boolean);return events.map(event=>({name:String(name).trim(),school:String(school).trim(),event:String(event).trim(),age:String(r.ageCategory??r['Age Category']??r.age_category??r.category??'').trim(),gender:String(r.gender??r.Gender??'').trim(),chest:String(r.chest??r.Chest??r.chestNumber??r.chest_number??''),photo:safePhoto(r.photoUrl??r.photoPath??r['Photo URL']??r.photo??r.photo_url??'')})).filter(x=>x.name&&x.school&&x.event);}
+function normalizeParticipant(r){const name=r.name??r.Name??r.participantName??r.participant_name??'';const school=r.school??r.School??r.schoolName??r.school_name??'';let ev=r.event??r.Event??r.events??r.eventName??r.event_name??'';const events=Array.isArray(ev)?ev.map(x=>typeof x==='string'?x:(x.name||x.event||'')):String(ev).split(/[,;|]/).map(x=>x.trim()).filter(Boolean);return events.map(event=>({name:String(name).trim(),school:String(school).trim(),event:String(event).trim(),age:String(r.ageCategory??r['Age Category']??r.age_category??r.category??'').trim(),gender:String(r.gender??r.Gender??'').trim(),chest:String(r.chest??r.Chest??r.chestNumber??r.chest_number??''),photo:safePhoto([r.photoUrl,r.photoURL,r.photoPath,r.photo_path,r['Photo URL'],r.photo,r.photo_url,r.imageUrl,r.image_url,r.profilePhoto,r.profile_photo,r.picture,r.image].find(v=>v!==undefined&&v!==null&&String(v).trim()!=='')||'')})).filter(x=>x.name&&x.school&&x.event);}
 function normMatch(v){return String(v??'').trim().toLocaleLowerCase().replace(/\s+/g,' ');}
 function winnerPhoto(w){
   if(isRelay(w.event))return '';
-  const direct=safePhoto(w.photoUrl??w.photoPath??w.photo_url??w.photo);
+  const direct=safePhoto([w.photoUrl,w.photoPath,w.photo_url,w.photo].find(v=>v!==undefined&&v!==null&&String(v).trim()!=='')||'');
   if(direct)return direct;
   const school=normMatch(w.school),chest=normMatch(w.chest??w.chestNumber??w.chest_number),name=normMatch(w.name??w.participantName);
   const candidates=participants.filter(p=>!school||normMatch(p.school)===school);
@@ -465,17 +482,10 @@ function advanceParticipantCursor(){
     return true;
   }
 
-  // Move directly to the next event's first page. Keep the entire
-  // participant showcase together; do not insert a scoreboard between events.
+  // This event is complete. Return to the scoreboard now; the next
+  // participant phase will continue with the following event.
   participantOffsets[event]=0;
-  if(participantEventIndex+1<participantGroups.length){
-    participantEventIndex++;
-    return true;
-  }
-
-  // Every event has been shown. Reset for the next rotation cycle.
-  participantEventIndex=0;
-  for(const [groupEvent] of participantGroups)participantOffsets[groupEvent]=0;
+  participantEventIndex=(participantEventIndex+1)%participantGroups.length;
   return false;
 }
 function renderParticipantPage(){
@@ -505,7 +515,7 @@ function fitParticipantNames(){
     while(el.scrollWidth>available && size>9){size-=.5;el.style.fontSize=size+'px';}
   });
 }
-function show(which){phase=which;for(const id of ['score','winners','participants','schools','ad']){$(id+'-screen').classList.toggle('active',which===id);}}
+function show(which){phase=which;for(const id of ['score','winners','participants','schools','ad','presentation']){$(id+'-screen').classList.toggle('active',which===id);}}
 function clearPhaseTimer(){if(phaseTimer){clearTimeout(phaseTimer);phaseTimer=null;}}
 
 function buildSchoolPages(){
@@ -579,11 +589,8 @@ function publishViewerStatus(){
 function advancePhase(){
   phaseTimer=null;
   if(phase==='winners'){
-    if(winnerPageIndex+1<winnerPages.length){winnerPageIndex++;renderWinnerPage();phaseEndsAt=Date.now()+15000;phaseTimer=setTimeout(advancePhase,15000);publishViewerStatus();return;}
-    // Winners flow straight into participants; no extra scoreboard screen here.
-    participantEventIndex=0;
-    for(const [event] of participantGroups)participantOffsets[event]=0;
-    startPhase('participants',7000);return;
+    if(winnerPageIndex+1<winnerPages.length){winnerPageIndex++;renderWinnerPage();phaseEndsAt=Date.now()+15000;phaseTimer=setTimeout(advancePhase,15000);return;}
+    startPhase('score',15000);return;
   }
   if(phase==='score'){
     // After participant pages, show the scoreboard for 10 seconds before schools.
@@ -632,7 +639,7 @@ function processWinnerQueue(){if(adPlaying||!winnerQueue.length)return;clearTime
 function notifyQueue(){if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'announcement-queue',count:pendingWinnerCount,adPlaying}));}
 function setAnnouncementPhoto(w){const photo=$('a-photo'),url=winnerPhoto(w);if(!photo)return;photo.onerror=()=>{photo.style.display='none';photo.removeAttribute('src');};if(url){photo.src=url;photo.style.display='block';}else{photo.removeAttribute('src');photo.style.display='none';}}
 function showAnnouncement(w){activeAnnouncementWinner=w;$('a-position').textContent=displayPosition(w.position);setAnnouncementPhoto(w);$('a-name').textContent=isRelay(w.event)?w.school:w.name;$('a-school').textContent=isRelay(w.event)?'RELAY TEAM':w.school;$('a-detail').textContent=[w.event,w.ageCategory,w.gender,w.chest?'Chest No. '+w.chest:''].filter(Boolean).join(' · ');$('announcement').classList.add('show');clearTimeout(announcementTimer);announcementTimer=setTimeout(()=>{$('announcement').classList.remove('show');startPhase('score',5000);scoreReturnTimer=setTimeout(()=>{if(winnerQueue.length)processWinnerQueue();else if(showSchoolsAfterAd)startSchoolShowcase();else resumePhase();},5000);},6500);}
-function receiveWinner(w){if(adPlaying){winnerQueue.push(w);pendingWinnerCount=winnerQueue.length;notifyQueue();return;}winnerQueue.push(w);processWinnerQueue();}
+function receiveWinner(w){if(adPlaying||presentationState.active){winnerQueue.push(w);pendingWinnerCount=winnerQueue.length;notifyQueue();return;}winnerQueue.push(w);processWinnerQueue();}
 async function fetchAds(){try{const r=await fetch('/api/ads',{cache:'no-store'});const d=await r.json();adFiles=Array.isArray(d.ads)?d.ads:[];}catch{adFiles=[];}}
 function maybeAd(){
   if(!adConfig.enabled||!adFiles.length||adPlaying||adPending||!adConfig.nextAdAt)return false;
@@ -675,12 +682,14 @@ $('ad-audio-toggle').addEventListener('click',e=>{
 function finishAd(){const video=$('ad-video');video.onended=null;video.onerror=null;video.oncanplay=null;video.pause();video.removeAttribute('src');video.load();$('ad-playback-status').textContent='';$('ad-screen').classList.remove('is-playing');adPlaying=false;adPending=false;lastAdClock=Date.now();if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'ad-finished'}));notifyQueue();if(winnerQueue.length){processWinnerQueue();}else{pausedPhase=null;pausedRemaining=0;showSchoolsAfterAd=false;scoreBeforeSchools=false;scoreAfterSchools=false;startPhase('score',15000);}}
 function updateAdConfig(c){adConfig={enabled:!!c.enabled,intervalMinutes:Math.max(1,Number(c.intervalMinutes)||3),nextAdAt:Number(c.nextAdAt)||0};if(!adConfig.enabled){adPending=false;clearTimeout(adWaitTimer);if(adPlaying)finishAd();}publishViewerStatus();}
 function applyState(s){scores=s.scores||[];winners=s.winners||[];renderScores();renderWinnerPage();if(!phaseTimer&&!pausedPhase){scoreBeforeSchools=false;scoreAfterSchools=false;startPhase('score',15000);}}
-function connect(){const protocol=location.protocol==='https:'?'wss':'ws';ws=new WebSocket(`${protocol}://${location.host}`);ws.onopen=()=>{retry=0;notifyQueue();};ws.onclose=()=>{setTimeout(connect,Math.min(10000,1000*2**retry++));};ws.onerror=()=>ws.close();ws.onmessage=e=>{let d;try{d=JSON.parse(e.data)}catch{return}if(d.serverNow)serverClockOffset=Number(d.serverNow)-Date.now();if(d.type==='init-state'||d.type==='state'){applyState(d.state||{});if(d.adConfig)updateAdConfig(d.adConfig);}if(d.type==='ad-config'||d.type==='ad-schedule')updateAdConfig(d.adConfig||d.config||{});if(d.type==='ad-list')adFiles=d.ads||[];if(d.type==='score'){scores[d.index]=d.value;renderScores();scoreInterrupt();}if(d.type==='winner'){if(d.winners)winners=d.winners;else if(d.winner)winners.push(d.winner);renderWinnerPage();receiveWinner(d.winner||{});}if(d.type==='ping')return;};}
+function stopPresentationVideo(){const video=$('presentation-video');if(!video)return;video.onended=null;video.onerror=null;video.oncanplay=null;video.pause();video.removeAttribute('src');delete video.dataset.url;video.load();}
+function finishPresentationLocally(){clearTimeout(presentationTimer);presentationTimer=null;stopPresentationVideo();presentationState={active:false,stage:'idle'};$('presentation-screen').classList.remove('active');$('presentation-stage').hidden=true;$('presentation-video').hidden=false;$('presentation-audio').hidden=true;if(phase==='presentation'){if(pausedPhase)resumePhase();else startPhase('score',15000);}if(winnerQueue.length&&!adPlaying)setTimeout(processWinnerQueue,250);}
+function showPresentationSchool(p){const current=p.current||{school:p.school,position:p.position};stopPresentationVideo();$('presentation-video').hidden=true;$('presentation-audio').hidden=true;$('presentation-stage').hidden=false;$('presentation-confetti').hidden=false;$('presentation-title').textContent='CONGRATULATIONS';$('presentation-school-name').textContent=current.school||p.school||'';$('presentation-position-name').textContent=current.position||p.position||'WINNER';$('presentation-sub').textContent='CELEBRATING EXCELLENCE';show('presentation');clearTimeout(presentationTimer);presentationTimer=setTimeout(()=>{if(presentationState.active&&presentationState.stage==='school'&&ws&&ws.readyState===1)ws.send(JSON.stringify({type:'presentation-next'}));},7000);}
+function handlePresentation(p){if(!p||!p.active){finishPresentationLocally();return;}if(!$('announcement').classList.contains('show')){}else{clearTimeout(announcementTimer);$('announcement').classList.remove('show');}presentationState=p;if(phase!=='presentation'&&!pausedPhase)pausePhase();else clearPhaseTimer();show('presentation');if(p.stage==='video'){clearTimeout(presentationTimer);$('presentation-stage').hidden=true;$('presentation-confetti').hidden=true;$('presentation-video').hidden=false;const video=$('presentation-video');const url=p.video?.url||presentationVideoUrl;if(!url){if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'presentation-video-ended'}));return;}if(video.dataset.url!==url){stopPresentationVideo();video.dataset.url=url;video.src=url;video.muted=true;video.currentTime=0;}video.onended=()=>{video.onended=null;if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'presentation-video-ended'}));};video.onerror=()=>{console.warn('Congratulations video could not be played',video.error);clearTimeout(presentationTimer);presentationTimer=setTimeout(()=>{if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'presentation-video-ended'}));},1800);};$('presentation-audio').hidden=false;$('presentation-audio').textContent=video.muted?'Enable sound':'Mute sound';video.play().catch(error=>{console.warn('Presentation autoplay blocked:',error);$('presentation-audio').textContent='Start video / enable sound';});return;}if(p.stage==='school'){showPresentationSchool(p);return;}if(p.stage==='select'||p.stage==='complete'){clearTimeout(presentationTimer);stopPresentationVideo();$('presentation-video').hidden=true;$('presentation-stage').hidden=false;$('presentation-confetti').hidden=false;$('presentation-title').textContent=p.stage==='complete'?'PRESENTATION COMPLETE':'READY FOR NEXT AWARD';$('presentation-school-name').textContent=p.school||'Congratulations to all our winners';$('presentation-position-name').textContent=p.position||'';$('presentation-sub').textContent='SELECT THE NEXT SCHOOL FROM THE HOST CONSOLE';}}
+$('presentation-audio').addEventListener('click',()=>{const video=$('presentation-video');video.muted=!video.muted;$('presentation-audio').textContent=video.muted?'Enable sound':'Mute sound';if(!video.hidden)video.play().catch(error=>console.warn('Could not resume presentation video:',error));});
+
+function connect(){const protocol=location.protocol==='https:'?'wss':'ws';ws=new WebSocket(`${protocol}://${location.host}`);ws.onopen=()=>{retry=0;notifyQueue();};ws.onclose=()=>{setTimeout(connect,Math.min(10000,1000*2**retry++));};ws.onerror=()=>ws.close();ws.onmessage=e=>{let d;try{d=JSON.parse(e.data)}catch{return}if(d.serverNow)serverClockOffset=Number(d.serverNow)-Date.now();if(d.type==='init-state'||d.type==='state'){applyState(d.state||{});if(d.adConfig)updateAdConfig(d.adConfig);if(d.presentation)handlePresentation(d.presentation);}if(d.type==='presentation')handlePresentation(d.presentation);if(d.type==='winner-video')presentationVideoUrl=d.video?.url||'';if(d.type==='ad-config'||d.type==='ad-schedule')updateAdConfig(d.adConfig||d.config||{});if(d.type==='ad-list')adFiles=d.ads||[];if(d.type==='score'){scores[d.index]=d.value;renderScores();scoreInterrupt();}if(d.type==='winner'){if(d.winners)winners=d.winners;else if(d.winner)winners.push(d.winner);renderWinnerPage();receiveWinner(d.winner||{});}if(d.type==='ping')return;};}
 window.addEventListener('resize',()=>{renderScores();if(phase==='winners')renderWinnerPage();if(phase==='participants')renderParticipantPage();if(phase==='schools')renderSchoolPage();});
 fetch('/api/state').then(r=>r.json()).then(applyState).catch(()=>{});fetch('/api/schools',{cache:'no-store'}).then(r=>r.json()).then(d=>{registeredSchools=Array.isArray(d.schools)?d.schools:[];renderScores();}).catch(()=>{});loadParticipants();fetchAds();connect();setInterval(loadParticipants,120000);
 setInterval(()=>{if(!adPlaying)maybeAd();publishViewerStatus();},1000);
 </script></body></html>
-
-<style>
-#score-screen .table-card .school-name{overflow-wrap:normal!important;word-break:normal!important;hyphens:none;}
-</style>

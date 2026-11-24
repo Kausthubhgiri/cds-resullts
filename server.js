@@ -34,6 +34,29 @@ const saveParticipants = () => writeJson(path.join(DATA,'participants.json'), pa
 const saveSettings = () => writeJson(path.join(DATA,'settings.json'), settings);
 const savePresentation = () => writeJson(path.join(DATA,'presentation.json'), presentation);
 function schools(rows=participants) { return [...new Set([...(state.schools || []), ...rows.map(p=>safeName(p.school))].filter(Boolean))].sort((a,b)=>a.localeCompare(b)); }
+function textKey(value) { return String(value ?? '').trim().toLocaleLowerCase().replace(/\s+/g, ' '); }
+function participantPhoto(row) {
+  const value = [row.photoUrl,row.photoURL,row.photo_url,row.photoPath,row.photo_path,row['Photo URL'],row.photo,row.imageUrl,row.image_url,row.profilePhoto,row.profile_photo,row.picture,row.image].find(v => v !== undefined && v !== null && String(v).trim() !== '') ?? '';
+  if (value && typeof value === 'object') return String(value.url ?? value.src ?? value.path ?? '').trim();
+  return String(value || '').trim();
+}
+async function enrichWinner(winner) {
+  const result = {...winner};
+  result.photoUrl = String([result.photoUrl,result.photoURL,result.photo_url,result.photoPath,result.photo_path].find(v => v !== undefined && v !== null && String(v).trim() !== '') ?? '').trim();
+  if (result.photoUrl || /relay/i.test(result.event || '')) return result;
+  try {
+    const source = await liveParticipants();
+    const rows = source.participants || [];
+    const school = textKey(result.school), chest = textKey(result.chest ?? result.chestNumber), name = textKey(result.name);
+    const candidates = rows.filter(row => !school || textKey(row.school ?? row.School ?? row.schoolName ?? row.school_name) === school);
+    let match = chest ? candidates.find(row => textKey(row.chest ?? row.Chest ?? row.chestNumber ?? row.chest_number) === chest) : null;
+    if (!match && name) match = candidates.find(row => textKey(row.name ?? row.Name ?? row.participantName ?? row.participant_name) === name);
+    if (!match && name) match = rows.find(row => textKey(row.name ?? row.Name ?? row.participantName ?? row.participant_name) === name && (!school || textKey(row.school ?? row.School ?? row.schoolName ?? row.school_name) === school));
+    if (match) result.photoUrl = participantPhoto(match);
+  } catch (error) { console.warn('Could not enrich winner photo:', error.message); }
+  return result;
+}
+
 async function liveParticipants() {
   const endpoint = process.env.PARTICIPANTS_API_URL;
   if (!endpoint) return { participants, source:'saved participants' };
@@ -106,7 +129,7 @@ wss.on('connection', ws => { const connectedAt=Date.now(); const heartbeatFresh=
     if (!admin(m)) { send(ws,{type:'error',message:'Unauthorized admin command'}); return; }
     try {
       if (m.type === 'score') { const i=Number(m.index), v=Number(m.value); if(!Number.isInteger(i)||!Number.isFinite(v)) throw new Error('Invalid score'); state.scores[i]=v; await saveState(); broadcast({type:'score',index:i,value:v,serverNow:Date.now()}); return; }
-      if (m.type === 'winner' || m.type === 'update-winner') { if(!m.winner?.id) throw new Error('Winner is required'); const at=state.winners.findIndex(w=>w.id===m.winner.id); if(at>=0)state.winners[at]=m.winner;else state.winners.push(m.winner); await saveState(); broadcast({type:'winner',winner:m.winner,winners:state.winners,serverNow:Date.now()}); return; }
+      if (m.type === 'winner' || m.type === 'update-winner') { if(!m.winner?.id) throw new Error('Winner is required'); const winner=await enrichWinner(m.winner); const at=state.winners.findIndex(w=>w.id===winner.id); if(at>=0)state.winners[at]=winner;else state.winners.push(winner); await saveState(); broadcast({type:'winner',winner,winners:state.winners,serverNow:Date.now()}); return; }
       if (m.type === 'delete-winner') { state.winners=state.winners.filter(w=>w.id!==m.id); await saveState(); publishState(); return; }
       if (m.type === 'clear-scores') { state.scores=[]; await saveState(); publishState(); return; }
       if (m.type === 'clear-winners') { state.winners=[]; await saveState(); publishState(); return; }
