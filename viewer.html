@@ -468,8 +468,8 @@ function winnerPhoto(w){
   if(!match&&name)match=participants.find(p=>normMatch(p.name)===name&&(!school||normMatch(p.school)===school));
   return safePhoto(match?.photo);
 }
-async function loadParticipants(){try{const res=await fetch(PARTICIPANTS_API_URL,{cache:'no-store'});if(!res.ok)throw new Error('HTTP '+res.status);const d=await res.json();const rows=Array.isArray(d)?d:(d.participants||d.results||d.data||[]);participants=rows.flatMap(normalizeParticipant);registeredSchools=[...new Set(participants.map(p=>String(p.school||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));renderScores();const grouped=new Map();for(const p of participants){if(!grouped.has(p.event))grouped.set(p.event,[]);grouped.get(p.event).push(p);}participantGroups=[...grouped.entries()].sort((a,b)=>a[0].localeCompare(b[0]));renderWinnerPage();if(activeAnnouncementWinner&&$('announcement').classList.contains('show'))setAnnouncementPhoto(activeAnnouncementWinner);}catch(e){console.warn('Participant showcase unavailable',e);}}
-function show(which){phase=which;for(const id of ['score','winners','participants','schools','ad','presentation']){$(id+'-screen').classList.toggle('active',which===id);}}
+async function loadParticipants(){try{const res=await fetch(PARTICIPANTS_API_URL,{cache:'no-store'});if(!res.ok)throw new Error('HTTP '+res.status);const d=await res.json();const rows=Array.isArray(d)?d:(d.participants||d.results||d.data||[]);participants=rows.flatMap(normalizeParticipant);registeredSchools=[...new Set(participants.map(p=>String(p.school||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));renderScores();renderWinnerPage();if(activeAnnouncementWinner&&$('announcement').classList.contains('show'))setAnnouncementPhoto(activeAnnouncementWinner);}catch(e){console.warn('Participant showcase unavailable',e);}}
+function show(which){phase=which;for(const id of ['score','winners','schools','ad','presentation']){const screen=$(id+'-screen');if(screen)screen.classList.toggle('active',which===id);}}
 function clearPhaseTimer(){if(phaseTimer){clearTimeout(phaseTimer);phaseTimer=null;}}
 
 function buildSchoolPages(){
@@ -492,6 +492,7 @@ function buildSchoolPages(){
 }
 function renderSchoolPage(){
   buildSchoolPages();
+  schoolPageIndex=Math.min(schoolPageIndex,schoolPages.length-1);
   const page=schoolPages[schoolPageIndex]||[];
   $('schools-summary-grid').innerHTML=page.length?page.map((x,i)=>`<article class="school-summary-card">
     <div class="school-card-index">SCHOOL ${schoolPageIndex*4+i+1}</div>
