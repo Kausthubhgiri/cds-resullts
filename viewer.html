@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CDS Sports Meet 2K26 — Live Results</title>
 <style>
-:root{--bg:#080b12;--panel:rgba(18,23,34,.88);--gold:#e8c779;--muted:#a9b1c1;--line:rgba(232,199,121,.2)}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:#f7f8fb;font-family:Inter,Segoe UI,Arial,sans-serif}body:before{content:"";position:fixed;inset:0;background:radial-gradient(ellipse at 50% -15%,rgba(170,126,48,.22),transparent 48%),linear-gradient(135deg,#080b12,#111827 60%,#090d16);z-index:-1}.shell{height:100%;padding:3vh 4vw;display:flex;flex-direction:column}.top{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:18px}.eyebrow{font-size:clamp(10px,1vw,15px);letter-spacing:.35em;color:var(--gold);text-transform:uppercase}.title{font-size:clamp(24px,3vw,48px);letter-spacing:.08em;font-weight:800;margin:8px 0 0}.live{color:#8ee0ae;font-size:13px;letter-spacing:.2em}.screen{position:absolute;inset:15vh 4vw 4vh;opacity:0;transform:translateY(12px);pointer-events:none;transition:opacity .8s ease,transform .8s ease}.screen.active{opacity:1;transform:none;pointer-events:auto}.scoreboard{display:flex;flex-direction:column;min-height:0;overflow:hidden}.podium{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin-bottom:14px;flex:0 0 clamp(145px,26vh,235px);min-height:0}.school-card,.table-card,.winner-card{background:linear-gradient(145deg,rgba(27,34,48,.96),rgba(11,15,24,.96));border:1px solid rgba(255,255,255,.09);border-radius:20px;box-shadow:0 20px 50px rgba(0,0,0,.25)}.school-card{position:relative;text-align:center;padding:clamp(14px,1.5vw,26px) clamp(34px,3vw,54px) clamp(10px,1.2vw,20px);min-height:0;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden}.podium-copy{flex:1;min-width:0;max-width:100%}.podium-medal{position:absolute;top:clamp(9px,1vw,15px);right:clamp(10px,1.1vw,17px);font-size:clamp(23px,2.1vw,34px);line-height:1;filter:drop-shadow(0 4px 8px rgba(0,0,0,.35))}.school-card.gold{border-color:#c9a44d;box-shadow:0 0 35px rgba(201,164,77,.13)}.school-card.silver{border-color:#8795a8}.school-card.bronze{border-color:#a76e48}.rank{display:none}.school-name{font-size:clamp(17px,1.75vw,29px);font-weight:800;line-height:1.14;margin:8px 0;overflow-wrap:anywhere;word-break:normal}.score{font-size:clamp(38px,3.8vw,62px);font-weight:850;color:#8de0aa;font-variant-numeric:tabular-nums}.rest{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:clamp(8px,.9vw,14px);overflow:hidden;flex:1 1 0;min-height:0;min-width:0;align-content:stretch;align-items:stretch;padding:2px}.table-card{aspect-ratio:auto;min-height:0;min-width:0;width:100%;height:100%;box-sizing:border-box;padding:clamp(7px,.8vw,14px);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:clamp(5px,.65vw,11px);overflow:hidden}.table-card .school-name{font-size:clamp(11px,1.05vw,20px);font-weight:800;margin:0;line-height:1.12;overflow-wrap:anywhere;word-break:normal}.small-score{font-size:clamp(20px,1.9vw,36px);font-weight:850;color:#8de0aa;flex:0 0 auto}.winners-screen{display:flex;flex-direction:column}.winners-head{text-align:center;margin-bottom:22px}.winners-head h2{font-size:clamp(28px,4vw,54px);letter-spacing:.14em;margin:0;color:var(--gold)}.winners-head p{color:var(--muted);letter-spacing:.28em;font-size:12px}.winners-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;overflow:auto;padding:4px 4px 24px}.winner-card{padding:20px;min-height:155px;position:relative;overflow:hidden}.winner-card:before{content:"";position:absolute;width:170px;height:170px;border-radius:50%;right:-90px;top:-90px;background:radial-gradient(circle,rgba(232,199,121,.16),transparent 70%)}.medal{color:var(--gold);font-size:12px;letter-spacing:.25em;text-transform:uppercase}.winner-name{font-size:clamp(17px,1.7vw,25px);font-weight:800;margin:12px 0 6px}.winner-school{color:#e1e5ec;font-size:14px}.winner-meta{color:var(--muted);font-size:12px;margin-top:10px}.winner-photo{display:block;width:clamp(74px,7vw,112px);height:clamp(74px,7vw,112px);object-fit:cover;border-radius:50%;margin:12px auto;border:2px solid rgba(232,199,121,.65);box-shadow:0 8px 24px rgba(0,0,0,.35)}.announcement{position:fixed;inset:0;display:grid;place-items:center;background:rgba(2,4,9,.92);backdrop-filter:blur(14px);z-index:2147483647;isolation:isolate;opacity:0;pointer-events:none;transition:opacity .5s}.announcement.show{opacity:1}.announce-card{width:min(900px,88vw);padding:clamp(28px,5vw,70px);border:1px solid rgba(232,199,121,.55);border-radius:28px;text-align:center;background:radial-gradient(ellipse at 50% 0,rgba(190,143,55,.25),transparent 60%),linear-gradient(145deg,#1a2030,#080b12);box-shadow:0 0 100px rgba(204,158,68,.18)}.announce-kicker{letter-spacing:.4em;color:var(--gold);font-size:13px}.announce-photo{display:none;width:clamp(120px,15vw,210px);height:clamp(120px,15vw,210px);object-fit:cover;border-radius:50%;margin:18px auto 12px;border:3px solid rgba(232,199,121,.8);box-shadow:0 12px 42px rgba(0,0,0,.48),0 0 34px rgba(232,199,121,.18)}.announce-position{font-size:clamp(44px,8vw,100px);font-weight:900;color:var(--gold);margin:14px 0}.announce-name{font-size:clamp(28px,5vw,60px);font-weight:850}.announce-school{font-size:clamp(17px,2vw,25px);margin-top:12px}.announce-detail{color:var(--muted);margin-top:18px;letter-spacing:.12em}.footer{position:fixed;bottom:18px;left:4vw;right:4vw;display:flex;justify-content:space-between;color:#778195;font-size:11px;letter-spacing:.15em}.empty{grid-column:1/-1;text-align:center;padding:60px;color:var(--muted)}@media(max-width:850px){.school-card{min-height:0}.winners-grid{grid-template-columns:repeat(2,1fr)}.screen{inset:16vh 3vw 4vh}.rest{gap:8px}.table-card .school-name{font-size:clamp(10px,1.8vw,16px)}}@media(max-width:560px){.podium{gap:6px;flex-basis:clamp(112px,21vh,155px)}.school-card{padding:7px 4px;gap:4px;flex-direction:column}.podium-medal{font-size:clamp(18px,4vw,25px);top:6px;right:7px}.school-name{font-size:11px}.score{font-size:clamp(20px,5vw,28px)}.table-card{padding:5px;gap:4px}.table-card .school-name{font-size:clamp(8px,2.2vw,12px)}.small-score{font-size:clamp(15px,4vw,22px)}.rest{gap:5px}.winners-grid{grid-template-columns:1fr}.top{align-items:flex-start}.live{font-size:10px}}
+:root{--bg:#080b12;--panel:rgba(18,23,34,.88);--gold:#e8c779;--muted:#a9b1c1;--line:rgba(232,199,121,.2)}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:#f7f8fb;font-family:Inter,Segoe UI,Arial,sans-serif}body:before{content:"";position:fixed;inset:0;background:radial-gradient(ellipse at 50% -15%,rgba(170,126,48,.22),transparent 48%),linear-gradient(135deg,#080b12,#111827 60%,#090d16);z-index:-1}.shell{height:100%;padding:3vh 4vw;display:flex;flex-direction:column}.top{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:18px}.eyebrow{font-size:clamp(10px,1vw,15px);letter-spacing:.35em;color:var(--gold);text-transform:uppercase}.title{font-size:clamp(24px,3vw,48px);letter-spacing:.08em;font-weight:800;margin:8px 0 0}.live{color:#8ee0ae;font-size:13px;letter-spacing:.2em}.screen{position:absolute;inset:15vh 4vw 4vh;opacity:0;transform:translateY(12px);pointer-events:none;transition:opacity .8s ease,transform .8s ease}.screen.active{opacity:1;transform:none;pointer-events:auto}.scoreboard{display:flex;flex-direction:column;min-height:0;overflow:hidden}.podium{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin-bottom:14px;flex:0 0 clamp(145px,26vh,235px);min-height:0}.school-card,.table-card,.winner-card{background:linear-gradient(145deg,rgba(27,34,48,.96),rgba(11,15,24,.96));border:1px solid rgba(255,255,255,.09);border-radius:20px;box-shadow:0 20px 50px rgba(0,0,0,.25)}.school-card{position:relative;text-align:center;padding:clamp(14px,1.5vw,26px) clamp(34px,3vw,54px) clamp(10px,1.2vw,20px);min-height:0;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden}.podium-copy{flex:1;min-width:0;max-width:100%}.podium-medal{position:absolute;top:clamp(9px,1vw,15px);right:clamp(10px,1.1vw,17px);font-size:clamp(23px,2.1vw,34px);line-height:1;filter:drop-shadow(0 4px 8px rgba(0,0,0,.35))}.school-card.gold{border-color:#c9a44d;box-shadow:0 0 35px rgba(201,164,77,.13)}.school-card.silver{border-color:#8795a8}.school-card.bronze{border-color:#a76e48}.rank{display:none}.school-name{font-size:clamp(17px,1.75vw,29px);font-weight:800;line-height:1.14;margin:8px 0;overflow-wrap:anywhere;word-break:normal}.score{font-size:clamp(38px,3.8vw,62px);font-weight:850;color:#8de0aa;font-variant-numeric:tabular-nums}.rest{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:clamp(8px,.9vw,14px);overflow:hidden;flex:1 1 0;min-height:0;min-width:0;align-content:stretch;align-items:stretch;padding:2px}.table-card{aspect-ratio:auto;min-height:0;min-width:0;width:100%;height:100%;box-sizing:border-box;padding:clamp(7px,.8vw,14px);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:clamp(5px,.65vw,11px);overflow:hidden}.table-card .school-name{font-size:clamp(11px,1.05vw,20px);font-weight:800;margin:0;line-height:1.12;overflow-wrap:anywhere;word-break:normal}.small-score{font-size:clamp(20px,1.9vw,36px);font-weight:850;color:#8de0aa;flex:0 0 auto}.winners-screen{display:flex;flex-direction:column}.winners-head{text-align:center;margin-bottom:22px}.winners-head h2{font-size:clamp(28px,4vw,54px);letter-spacing:.14em;margin:0;color:var(--gold)}.winners-head p{color:var(--muted);letter-spacing:.28em;font-size:12px}.winners-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;overflow:auto;padding:4px 4px 24px}.winner-card{padding:20px;min-height:155px;position:relative;overflow:hidden}.winner-card:before{content:"";position:absolute;width:170px;height:170px;border-radius:50%;right:-90px;top:-90px;background:radial-gradient(circle,rgba(232,199,121,.16),transparent 70%)}.medal{color:var(--gold);font-size:12px;letter-spacing:.25em;text-transform:uppercase}.winner-name{font-size:clamp(17px,1.7vw,25px);font-weight:800;margin:12px 0 6px}.winner-school{color:#e1e5ec;font-size:clamp(16px,1.25vw,21px);font-weight:650;line-height:1.25;margin-top:4px;overflow-wrap:anywhere}.winner-meta{color:var(--muted);font-size:clamp(14px,1.05vw,17px);line-height:1.3;margin-top:12px;overflow-wrap:anywhere}.winner-photo{display:block;width:clamp(74px,7vw,112px);height:clamp(74px,7vw,112px);object-fit:cover;border-radius:50%;margin:12px auto;border:2px solid rgba(232,199,121,.65);box-shadow:0 8px 24px rgba(0,0,0,.35)}.announcement{position:fixed;inset:0;display:grid;place-items:center;background:rgba(2,4,9,.92);backdrop-filter:blur(14px);z-index:2147483647;isolation:isolate;opacity:0;pointer-events:none;transition:opacity .5s}.announcement.show{opacity:1}.announce-card{width:min(900px,88vw);padding:clamp(28px,5vw,70px);border:1px solid rgba(232,199,121,.55);border-radius:28px;text-align:center;background:radial-gradient(ellipse at 50% 0,rgba(190,143,55,.25),transparent 60%),linear-gradient(145deg,#1a2030,#080b12);box-shadow:0 0 100px rgba(204,158,68,.18)}.announce-kicker{letter-spacing:.4em;color:var(--gold);font-size:13px}.announce-photo{display:none;width:clamp(120px,15vw,210px);height:clamp(120px,15vw,210px);object-fit:cover;border-radius:50%;margin:18px auto 12px;border:3px solid rgba(232,199,121,.8);box-shadow:0 12px 42px rgba(0,0,0,.48),0 0 34px rgba(232,199,121,.18)}.announce-position{font-size:clamp(44px,8vw,100px);font-weight:900;color:var(--gold);margin:14px 0}.announce-name{font-size:clamp(28px,5vw,60px);font-weight:850}.announce-school{font-size:clamp(17px,2vw,25px);margin-top:12px}.announce-detail{color:var(--muted);margin-top:18px;letter-spacing:.12em}.footer{position:fixed;bottom:18px;left:4vw;right:4vw;display:flex;justify-content:space-between;color:#778195;font-size:11px;letter-spacing:.15em}.empty{grid-column:1/-1;text-align:center;padding:60px;color:var(--muted)}@media(max-width:850px){.school-card{min-height:0}.winners-grid{grid-template-columns:repeat(2,1fr)}.screen{inset:16vh 3vw 4vh}.rest{gap:8px}.table-card .school-name{font-size:clamp(10px,1.8vw,16px)}}@media(max-width:560px){.podium{gap:6px;flex-basis:clamp(112px,21vh,155px)}.school-card{padding:7px 4px;gap:4px;flex-direction:column}.podium-medal{font-size:clamp(18px,4vw,25px);top:6px;right:7px}.school-name{font-size:11px}.score{font-size:clamp(20px,5vw,28px)}.table-card{padding:5px;gap:4px}.table-card .school-name{font-size:clamp(8px,2.2vw,12px)}.small-score{font-size:clamp(15px,4vw,22px)}.rest{gap:5px}.winners-grid{grid-template-columns:1fr}.top{align-items:flex-start}.live{font-size:10px}}
 
 
 /* Premium participant showcase */
@@ -483,10 +483,16 @@ function advanceParticipantCursor(){
     return true;
   }
 
-  // This event is complete. Return to the scoreboard now; the next
-  // participant phase will continue with the following event.
+  // Move directly to the next event. Keep the participant phase running
+  // until every event (and every page within it) has been displayed.
   participantOffsets[event]=0;
-  participantEventIndex=(participantEventIndex+1)%participantGroups.length;
+  if(participantEventIndex+1<participantGroups.length){
+    participantEventIndex++;
+    return true;
+  }
+  // All events have been shown; reset for the next complete cycle.
+  participantEventIndex=0;
+  for(const [eventName] of participantGroups)participantOffsets[eventName]=0;
   return false;
 }
 function renderParticipantPage(){
@@ -590,40 +596,46 @@ function publishViewerStatus(){
 function advancePhase(){
   phaseTimer=null;
   if(phase==='winners'){
-    if(winnerPageIndex+1<winnerPages.length){winnerPageIndex++;renderWinnerPage();phaseEndsAt=Date.now()+15000;phaseTimer=setTimeout(advancePhase,15000);return;}
-    startPhase('score',15000);return;
+    if(winnerPageIndex+1<winnerPages.length){
+      winnerPageIndex++;renderWinnerPage();phaseEndsAt=Date.now()+15000;
+      phaseTimer=setTimeout(advancePhase,15000);publishViewerStatus();return;
+    }
+    // Winners are followed immediately by the complete participant showcase.
+    participantEventIndex=0;
+    for(const [eventName] of participantGroups)participantOffsets[eventName]=0;
+    startPhase('participants',7000);return;
   }
   if(phase==='score'){
-    // After participant pages, show the scoreboard for 10 seconds before schools.
-    if(scoreBeforeSchools){
-      scoreBeforeSchools=false;
-      startSchoolShowcase();
-      return;
-    }
-    // After all school pages, hold the scoreboard for 15 seconds. Ads, when due,
-    // are inserted here; otherwise the next full cycle begins with winners/participants.
-    if(scoreAfterSchools && adPending && adConfig.enabled && adFiles.length && !winnerQueue.length && !$('announcement').classList.contains('show')){
+    // This is the 15-second scoreboard hold after all school pages.
+    // Insert a scheduled ad here; otherwise begin the next cycle.
+    if(scoreAfterSchools){
+      if(adPending && adConfig.enabled && adFiles.length && !winnerQueue.length && !$('announcement').classList.contains('show')){
+        scoreAfterSchools=false;
+        playNextAd();return;
+      }
       scoreAfterSchools=false;
-      playNextAd();
-      return;
     }
-    scoreAfterSchools=false;
     if(winners.length>=5)startPhase('winners',15000);
-    else startPhase('participants',7000);
+    else{
+      participantEventIndex=0;
+      for(const [eventName] of participantGroups)participantOffsets[eventName]=0;
+      startPhase('participants',7000);
+    }
     return;
   }
   if(phase==='participants'){
     if(advanceParticipantCursor()){
       startPhase('participants',7000);
     }else{
-      scoreBeforeSchools=true;
-      startPhase('score',10000);
+      // No interstitial scoreboard: school showcase follows all events.
+      startSchoolShowcase();
     }
     return;
   }
   if(phase==='schools'){
     if(schoolPageIndex+1<schoolPages.length){
-      schoolPageIndex++;renderSchoolPage();phaseEndsAt=Date.now()+10000;phaseTimer=setTimeout(advancePhase,10000);publishViewerStatus();
+      schoolPageIndex++;renderSchoolPage();phaseEndsAt=Date.now()+10000;
+      phaseTimer=setTimeout(advancePhase,10000);publishViewerStatus();
     }else{
       scoreAfterSchools=true;
       startPhase('score',15000);
