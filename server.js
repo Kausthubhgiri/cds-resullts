@@ -11,7 +11,7 @@ const PORT = Number(process.env.PORT || 3000);
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
 const VIDEO_EXT = new Set(['.mp4', '.webm', '.ogg', '.mov', '.m4v']);
 const MIME = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.css':'text/css; charset=utf-8','.mp4':'video/mp4','.webm':'video/webm','.ogg':'video/ogg','.mov':'video/quicktime','.m4v':'video/x-m4v'};
-let state = { scores: [], winners: [], schools: [] };
+let state = { scores: [], schoolScores: {}, winners: [], schools: [] };
 let settings = { enabled:false, intervalMinutes:3, nextAdAt:0 };
 let participants = [];
 let presentation = { active:false, stage:'idle', school:'', position:'', queue:[], current:null, video:null, startedAt:0 };
@@ -23,6 +23,7 @@ async function readJson(file, fallback) { try { return JSON.parse(await fsp.read
 async function writeJson(file, value) { await fsp.mkdir(DATA, {recursive:true}); await fsp.writeFile(file, JSON.stringify(value, null, 2)); }
 async function load() {
   state = {...state, ...(await readJson(path.join(DATA,'state.json'), {}))};
+  if (!state.schoolScores || typeof state.schoolScores !== 'object' || Array.isArray(state.schoolScores)) state.schoolScores = {};
   participants = await readJson(path.join(DATA,'participants.json'), []);
   settings = {...settings, ...(await readJson(path.join(DATA,'settings.json'), {}))};
   presentation = {...presentation, ...(await readJson(path.join(DATA,'presentation.json'), {}))};
@@ -35,6 +36,7 @@ const saveSettings = () => writeJson(path.join(DATA,'settings.json'), settings);
 const savePresentation = () => writeJson(path.join(DATA,'presentation.json'), presentation);
 function schools(rows=participants) { return [...new Set([...(state.schools || []), ...rows.map(p=>safeName(p.school))].filter(Boolean))].sort((a,b)=>a.localeCompare(b)); }
 function textKey(value) { return String(value ?? '').trim().toLocaleLowerCase().replace(/\s+/g, ' '); }
+function scoreKey(value) { return textKey(value); }
 function participantPhoto(row) {
   const value = [row.photoUrl,row.photoURL,row.photo_url,row.photoPath,row.photo_path,row['Photo URL'],row.photo,row.imageUrl,row.image_url,row.profilePhoto,row.profile_photo,row.picture,row.image].find(v => v !== undefined && v !== null && String(v).trim() !== '') ?? '';
   if (value && typeof value === 'object') return String(value.url ?? value.src ?? value.path ?? '').trim();
@@ -128,7 +130,7 @@ wss.on('connection', ws => { const connectedAt=Date.now(); const heartbeatFresh=
     if (m.type === 'presentation-next') { if(presentation.active && presentation.stage==='school') { if(presentation.queue.length){presentation.current=presentation.queue.shift();presentation.school=presentation.current.school;presentation.position=presentation.current.position;presentation.stage='school';}else presentation.stage='complete'; await savePresentation(); broadcast({type:'presentation',presentation,serverNow:Date.now()}); } return; }
     if (!admin(m)) { send(ws,{type:'error',message:'Unauthorized admin command'}); return; }
     try {
-      if (m.type === 'score') { const i=Number(m.index), v=Number(m.value); if(!Number.isInteger(i)||!Number.isFinite(v)) throw new Error('Invalid score'); state.scores[i]=v; await saveState(); broadcast({type:'score',index:i,value:v,serverNow:Date.now()}); return; }
+      if (m.type === 'score') { const i=Number(m.index), v=Number(m.value), school=safeName(m.school); if(!Number.isInteger(i)||i<0||!Number.isFinite(v)) throw new Error('Invalid score'); if(!school) throw new Error('School name is required for a score update'); state.scores[i]=v; state.schoolScores=state.schoolScores||{}; state.schoolScores[scoreKey(school)]=v; state.schools=[...new Set([...(state.schools||[]),school])].sort((a,b)=>a.localeCompare(b)); await saveState(); broadcast({type:'score',index:i,school,value:v,schoolScores:state.schoolScores,serverNow:Date.now()}); return; }
       if (m.type === 'winner' || m.type === 'update-winner') { if(!m.winner?.id) throw new Error('Winner is required'); const winner=await enrichWinner(m.winner); const at=state.winners.findIndex(w=>w.id===winner.id); if(at>=0)state.winners[at]=winner;else state.winners.push(winner); await saveState(); broadcast({type:'winner',winner,winners:state.winners,serverNow:Date.now()}); return; }
       if (m.type === 'delete-winner') { state.winners=state.winners.filter(w=>w.id!==m.id); await saveState(); publishState(); return; }
       if (m.type === 'clear-scores') { state.scores=[]; await saveState(); publishState(); return; }
