@@ -425,7 +425,6 @@ html body #announcement .announce-card{position:relative;z-index:1}
 </style></head><body><div class="shell"><header class="top"><div><div class="eyebrow">Capital District Sahodaya · Official Results</div><h1 class="title">CDS SPORTS MEET 2K26</h1></div><div class="live">● LIVE RESULTS</div></header></div>
 <section id="score-screen" class="screen scoreboard active"><div id="podium" class="podium"></div><div id="school-rest" class="rest"></div></section>
 <section id="winners-screen" class="screen winners-screen"><div class="winners-head"><h2>CONGRATULATIONS WINNERS</h2><p>CELEBRATING OUR ACHIEVERS</p></div><div id="winners-grid" class="winners-grid"></div><div id="winner-page-count" class="page-count"></div></section>
-<section id="participants-screen" class="screen participants-screen"><div class="winners-head"><h2>EVENT PARTICIPANTS</h2><p id="participant-event-label">REGISTERED PARTICIPANTS</p></div><div id="participants-grid" class="participants-grid"></div><div id="participant-page-count" class="page-count"></div></section>
 <section id="schools-screen" class="screen schools-screen">
 <div class="schools-head"><h2>PARTICIPATING SCHOOLS</h2><p>SCHOOL PARTICIPATION · EVENT REPRESENTATION · WINNERS</p></div>
 <div id="schools-summary-grid" class="schools-summary-grid"></div>
@@ -442,7 +441,7 @@ const PARTICIPANTS_API_URL='/api/participants';
 let scores=[],schoolScores={},winners=[],registeredSchools=[],participants=[],ws,retry=0;
 let adConfig={enabled:false,intervalMinutes:3,nextAdAt:0},adFiles=[],adIndex=0,adPlaying=false,adDueAt=0,lastAdClock=Date.now(),serverClockOffset=0,lastViewerStatusAt=0;
 let phase='score',phaseTimer=null,phaseEndsAt=0,pausedPhase=null,pausedRemaining=0,scoreReturnTimer=null;let announcementTimer=null;
-let winnerQueue=[],pendingWinnerCount=0,winnerPages=[],winnerPageIndex=0,activeAnnouncementWinner=null,participantGroups=[],participantEventIndex=0,participantOffsets={};
+let winnerQueue=[],pendingWinnerCount=0,winnerPages=[],winnerPageIndex=0,activeAnnouncementWinner=null;
 let schoolPages=[],schoolPageIndex=0,showSchoolsAfterAd=false,scoreBeforeSchools=false,scoreAfterSchools=false;
 let adPending=false,adWaitTimer=null;
 let presentationState={active:false,stage:'idle'},presentationTimer=null,presentationVideoUrl='';
@@ -470,58 +469,6 @@ function winnerPhoto(w){
   return safePhoto(match?.photo);
 }
 async function loadParticipants(){try{const res=await fetch(PARTICIPANTS_API_URL,{cache:'no-store'});if(!res.ok)throw new Error('HTTP '+res.status);const d=await res.json();const rows=Array.isArray(d)?d:(d.participants||d.results||d.data||[]);participants=rows.flatMap(normalizeParticipant);registeredSchools=[...new Set(participants.map(p=>String(p.school||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));renderScores();const grouped=new Map();for(const p of participants){if(!grouped.has(p.event))grouped.set(p.event,[]);grouped.get(p.event).push(p);}participantGroups=[...grouped.entries()].sort((a,b)=>a[0].localeCompare(b[0]));renderWinnerPage();if(activeAnnouncementWinner&&$('announcement').classList.contains('show'))setAnnouncementPhoto(activeAnnouncementWinner);}catch(e){console.warn('Participant showcase unavailable',e);}}
-function participantCapacity(){const cols=window.innerWidth<650?1:window.innerWidth<1050?2:4;const rows=window.innerHeight<650?2:window.innerHeight<850?2:3;return Math.max(1,cols*rows);}
-function advanceParticipantCursor(){
-  if(!participantGroups.length)return false;
-  const [event,list]=participantGroups[participantEventIndex]||[];
-  if(!event||!list)return false;
-
-  // Stay on this event and show its next participant page first.
-  const next=(participantOffsets[event]||0)+participantCapacity();
-  if(next<list.length){
-    participantOffsets[event]=next;
-    return true;
-  }
-
-  // Move directly to the next event. Keep the participant phase running
-  // until every event (and every page within it) has been displayed.
-  participantOffsets[event]=0;
-  if(participantEventIndex+1<participantGroups.length){
-    participantEventIndex++;
-    return true;
-  }
-  // All events have been shown; reset for the next complete cycle.
-  participantEventIndex=0;
-  for(const [eventName] of participantGroups)participantOffsets[eventName]=0;
-  return false;
-}
-function renderParticipantPage(){
-  if(!participantGroups.length){
-    $('participant-event-label').textContent='NO PARTICIPANT DATA AVAILABLE';
-    $('participants-grid').innerHTML='<div class="empty">Participant registrations will appear here when available.</div>';
-    $('participant-page-count').textContent='';
-    return;
-  }
-  if(participantEventIndex>=participantGroups.length)participantEventIndex=0;
-  const [event,list]=participantGroups[participantEventIndex];
-  const size=participantCapacity();
-  let offset=participantOffsets[event]||0;
-  if(offset>=list.length)offset=0;
-  const page=list.slice(offset,offset+size);
-  $('participant-event-label').textContent=event.toUpperCase();$('participants-grid').dataset.event=event;
-  $('participants-grid').innerHTML=page.map(p=>`<article class="participant-card"><img src="${esc(p.photo||'')}" alt="" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Crect width=%22100%22 height=%22100%22 fill=%22%23263347%22/%3E%3Ccircle cx=%2250%22 cy=%2236%22 r=%2218%22 fill=%22%23899ab0%22/%3E%3Cpath d=%22M15 100c2-25 15-38 35-38s33 13 35 38%22 fill=%22%23899ab0%22/%3E%3C/svg%3E'"><div><div class="p-name" title="${esc(p.name)}">${esc(p.name)}</div><div class="p-school" title="${esc(p.school)}">${esc(p.school)}</div><div class="p-chest">${[p.age?'Age: '+p.age:'',p.gender?'Gender: '+p.gender:'',p.chest?'Chest No.: '+p.chest:''].filter(Boolean).map(esc).join(' · ')}</div></div></article>`).join('');
-  $('participant-page-count').textContent=`${Math.floor(offset/size)+1} / ${Math.ceil(list.length/size)} · ${participantEventIndex+1} OF ${participantGroups.length} EVENTS`;
-  fitParticipantNames();
-}
-function fitParticipantNames(){
-  document.querySelectorAll('.participant-card .p-name').forEach(el=>{
-    el.style.fontSize='';
-    const parent=el.parentElement;
-    const available=parent.clientWidth;
-    let size=parseFloat(getComputedStyle(el).fontSize);
-    while(el.scrollWidth>available && size>9){size-=.5;el.style.fontSize=size+'px';}
-  });
-}
 function show(which){phase=which;for(const id of ['score','winners','participants','schools','ad','presentation']){$(id+'-screen').classList.toggle('active',which===id);}}
 function clearPhaseTimer(){if(phaseTimer){clearTimeout(phaseTimer);phaseTimer=null;}}
 
@@ -564,7 +511,7 @@ function startSchoolShowcase(){
 function startPhase(which,duration=15000){
   clearPhaseTimer();show(which);
   if(which==='winners'){winnerPageIndex=0;renderWinnerPage();}
-  if(which==='participants')renderParticipantPage();
+  
   if(which==='schools'){schoolPageIndex=0;renderSchoolPage();}
   phaseEndsAt=Date.now()+duration;
   phaseTimer=setTimeout(advancePhase,duration);
@@ -578,11 +525,7 @@ function estimatedAdStart(){
   if(phase==='score'&&!pausedPhase&&!winnerQueue.length&&!$('announcement').classList.contains('show'))return Math.max(serverNow(),phaseEndsAt);
   if($('announcement').classList.contains('show')||pausedPhase)return 0;
   let untilScore=0;
-  if(phase==='participants'){
-    const [event,list]=participantGroups[participantEventIndex]||[];const size=participantCapacity();const offset=event?(participantOffsets[event]||0):0;
-    const pagesLeft=event&&list?Math.max(1,Math.ceil((list.length-offset)/size)):1;
-    untilScore=Math.max(0,phaseEndsAt-Date.now())+Math.max(0,pagesLeft-1)*7000;
-  }else if(phase==='winners')untilScore=Math.max(0,phaseEndsAt-Date.now())+Math.max(0,winnerPages.length-winnerPageIndex-1)*15000;
+  if(phase==='winners')untilScore=Math.max(0,phaseEndsAt-Date.now())+Math.max(0,winnerPages.length-winnerPageIndex-1)*15000;
   else return 0;
   return serverNow()+untilScore+15000;
 }
@@ -600,10 +543,8 @@ function advancePhase(){
       winnerPageIndex++;renderWinnerPage();phaseEndsAt=Date.now()+15000;
       phaseTimer=setTimeout(advancePhase,15000);publishViewerStatus();return;
     }
-    // Winners are followed immediately by the complete participant showcase.
-    participantEventIndex=0;
-    for(const [eventName] of participantGroups)participantOffsets[eventName]=0;
-    startPhase('participants',7000);return;
+    // Winners are followed directly by the school showcase.
+    startSchoolShowcase();return;
   }
   if(phase==='score'){
     // This is the 15-second scoreboard hold after all school pages.
@@ -616,20 +557,7 @@ function advancePhase(){
       scoreAfterSchools=false;
     }
     if(winners.length>=5)startPhase('winners',15000);
-    else{
-      participantEventIndex=0;
-      for(const [eventName] of participantGroups)participantOffsets[eventName]=0;
-      startPhase('participants',7000);
-    }
-    return;
-  }
-  if(phase==='participants'){
-    if(advanceParticipantCursor()){
-      startPhase('participants',7000);
-    }else{
-      // No interstitial scoreboard: school showcase follows all events.
-      startSchoolShowcase();
-    }
+    else startSchoolShowcase();
     return;
   }
   if(phase==='schools'){
@@ -702,7 +630,7 @@ function handlePresentation(p){if(!p||!p.active){finishPresentationLocally();ret
 $('presentation-audio').addEventListener('click',()=>{const video=$('presentation-video');video.muted=!video.muted;$('presentation-audio').textContent=video.muted?'Enable sound':'Mute sound';if(!video.hidden)video.play().catch(error=>console.warn('Could not resume presentation video:',error));});
 
 function connect(){const protocol=location.protocol==='https:'?'wss':'ws';ws=new WebSocket(`${protocol}://${location.host}`);ws.onopen=()=>{retry=0;notifyQueue();};ws.onclose=()=>{setTimeout(connect,Math.min(10000,1000*2**retry++));};ws.onerror=()=>ws.close();ws.onmessage=e=>{let d;try{d=JSON.parse(e.data)}catch{return}if(d.serverNow)serverClockOffset=Number(d.serverNow)-Date.now();if(d.type==='init-state'||d.type==='state'){applyState(d.state||{});if(d.adConfig)updateAdConfig(d.adConfig);if(d.presentation)handlePresentation(d.presentation);}if(d.type==='presentation')handlePresentation(d.presentation);if(d.type==='winner-video')presentationVideoUrl=d.video?.url||'';if(d.type==='ad-config'||d.type==='ad-schedule')updateAdConfig(d.adConfig||d.config||{});if(d.type==='ad-list')adFiles=d.ads||[];if(d.type==='score'){if(Number.isInteger(Number(d.index)))scores[Number(d.index)]=d.value;if(d.school){const schoolName=String(d.school).trim();schoolScores[schoolName.toLocaleLowerCase().replace(/\s+/g,' ')]=Number(d.value);}if(d.schoolScores)schoolScores=d.schoolScores;renderScores();scoreInterrupt();}if(d.type==='winner'){if(d.winners)winners=d.winners;else if(d.winner)winners.push(d.winner);renderWinnerPage();receiveWinner(d.winner||{});}if(d.type==='ping')return;};}
-window.addEventListener('resize',()=>{renderScores();if(phase==='winners')renderWinnerPage();if(phase==='participants')renderParticipantPage();if(phase==='schools')renderSchoolPage();});
+window.addEventListener('resize',()=>{renderScores();if(phase==='winners')renderWinnerPage();if(phase==='schools')renderSchoolPage();});
 fetch('/api/state').then(r=>r.json()).then(applyState).catch(()=>{});loadParticipants();fetchAds();connect();setInterval(loadParticipants,120000);
 setInterval(()=>{if(!adPlaying)maybeAd();publishViewerStatus();},1000);
 </script></body></html>
