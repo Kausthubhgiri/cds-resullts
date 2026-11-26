@@ -526,7 +526,7 @@ function estimatedAdStart(){
   if(phase==='score'&&!pausedPhase&&!winnerQueue.length&&!$('announcement').classList.contains('show'))return Math.max(serverNow(),phaseEndsAt);
   if($('announcement').classList.contains('show')||pausedPhase)return 0;
   let untilScore=0;
-  if(phase==='winners')untilScore=Math.max(0,phaseEndsAt-Date.now())+Math.max(0,winnerPages.length-winnerPageIndex-1)*15000;
+  if(phase==='winners')untilScore=Math.max(0,phaseEndsAt-Date.now())+Math.max(0,winnerPages.length-winnerPageIndex-1)*5000;
   else return 0;
   return serverNow()+untilScore+15000;
 }
@@ -541,8 +541,8 @@ function advancePhase(){
   phaseTimer=null;
   if(phase==='winners'){
     if(winnerPageIndex+1<winnerPages.length){
-      winnerPageIndex++;renderWinnerPage();phaseEndsAt=Date.now()+15000;
-      phaseTimer=setTimeout(advancePhase,15000);publishViewerStatus();return;
+      winnerPageIndex++;renderWinnerPage();phaseEndsAt=Date.now()+5000;
+      phaseTimer=setTimeout(advancePhase,5000);publishViewerStatus();return;
     }
     // Winners are followed directly by the school showcase.
     startSchoolShowcase();return;
@@ -557,7 +557,7 @@ function advancePhase(){
       }
       scoreAfterSchools=false;
     }
-    if(winners.length>=5)startPhase('winners',15000);
+    if(winners.length>=5)startPhase('winners',5000);
     else startSchoolShowcase();
     return;
   }
