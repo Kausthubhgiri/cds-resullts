@@ -542,14 +542,11 @@ let winnerHighlightTimer=null;
 function showWinnerHighlight(data){
   if(!data||!Array.isArray(data.prizes)||!data.prizes.length)return;
   clearTimeout(winnerHighlightTimer);
+  clearTimeout(announcementTimer);
+  $('presentation-screen').classList.remove('active');
+  $('score-screen').classList.add('active');
   showAnnouncement(data,true,data.prizes);
-  if(!presentationState.active){
-    winnerHighlightTimer=setTimeout(()=>{
-      $('announcement').classList.remove('show','presentation-announcement');
-      $('a-prizes').innerHTML='';
-      $('a-prizes').hidden=true;
-    },15000);
-  }
+  // Highlight is persistent: only End Presentation on the host clears it.
 }
 
 function show(which){phase=which;for(const id of ['score','winners','schools','ad','presentation']){const screen=$(id+'-screen');if(screen)screen.classList.toggle('active',which===id);}}
@@ -740,18 +737,26 @@ function showPresentationSchool(p){
   $('presentation-audio').hidden=true;
   $('presentation-stage').hidden=true;
   $('presentation-confetti').hidden=true;
-  show('presentation');
+  // Keep the scoreboard behind the announcement; never show the generic
+  // presentation card ("READY FOR NEXT AWARD" / school-only card).
+  $('presentation-screen').classList.remove('active');
+  $('score-screen').classList.add('active');
   const winner=current.winner||{name:current.school||p.school,school:current.school||p.school,position:current.position||p.position,event:'',ageCategory:'',gender:''};
   showAnnouncement(winner,true);
   clearTimeout(presentationTimer);
-  // Keep the same winner announcement visible and animated. Advance only when
-  // another item is queued; the final announcement remains until End Presentation.
+  clearTimeout(announcementTimer);
+  // Show the original winner announcement for exactly six seconds, then clear
+  // it and advance the queue. The presentation itself remains active until
+  // the host explicitly presses End Presentation.
   presentationTimer=setTimeout(()=>{
-    if(presentationState.active&&presentationState.stage==='school'&&ws&&ws.readyState===1)
-      ws.send(JSON.stringify({type:'presentation-next'}));
-  },8000);
+    if(!presentationState.active||presentationState.stage!=='school')return;
+    $('announcement').classList.remove('show','presentation-announcement');
+    $('a-prizes').innerHTML='';
+    $('a-prizes').hidden=true;
+    if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'presentation-next'}));
+  },6000);
 }
-function handlePresentation(p){if(!p||!p.active){finishPresentationLocally();return;}if(p.stage==='video'){$('announcement').classList.remove('show','presentation-announcement');clearTimeout(announcementTimer);}presentationState=p;if(phase!=='presentation'&&!pausedPhase)pausePhase();else clearPhaseTimer();show('presentation');if(p.stage==='video'){clearTimeout(presentationTimer);$('presentation-stage').hidden=true;$('presentation-confetti').hidden=true;$('presentation-video').hidden=false;const video=$('presentation-video');const url=p.video?.url||presentationVideoUrl;if(!url){if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'presentation-video-ended'}));return;}if(video.dataset.url!==url){stopPresentationVideo();video.dataset.url=url;video.src=url;video.muted=true;video.currentTime=0;}video.onended=()=>{video.onended=null;if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'presentation-video-ended'}));};video.onerror=()=>{console.warn('Congratulations video could not be played',video.error);clearTimeout(presentationTimer);presentationTimer=setTimeout(()=>{if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'presentation-video-ended'}));},1800);};$('presentation-audio').hidden=false;$('presentation-audio').textContent=video.muted?'Enable sound':'Mute sound';video.play().catch(error=>{console.warn('Presentation autoplay blocked:',error);$('presentation-audio').textContent='Start video / enable sound';});return;}if(p.stage==='school'){showPresentationSchool(p);return;}if(p.stage==='select'||p.stage==='complete'){clearTimeout(presentationTimer);stopPresentationVideo();$('presentation-video').hidden=true;$('presentation-stage').hidden=false;$('presentation-confetti').hidden=false;$('presentation-title').textContent=p.stage==='complete'?'PRESENTATION COMPLETE':'READY FOR NEXT AWARD';$('presentation-school-name').textContent=p.school||'Congratulations to all our winners';$('presentation-position-name').textContent=p.position||'';$('presentation-sub').textContent='SELECT THE NEXT SCHOOL FROM THE HOST CONSOLE';}}
+function handlePresentation(p){if(!p||!p.active){finishPresentationLocally();return;}if(p.stage==='video'){$('announcement').classList.remove('show','presentation-announcement');clearTimeout(announcementTimer);}presentationState=p;if(phase!=='presentation'&&!pausedPhase)pausePhase();else clearPhaseTimer();show('presentation');if(p.stage==='video'){clearTimeout(presentationTimer);$('presentation-stage').hidden=true;$('presentation-confetti').hidden=true;$('presentation-video').hidden=false;const video=$('presentation-video');const url=p.video?.url||presentationVideoUrl;if(!url){if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'presentation-video-ended'}));return;}if(video.dataset.url!==url){stopPresentationVideo();video.dataset.url=url;video.src=url;video.muted=true;video.currentTime=0;}video.onended=()=>{video.onended=null;if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'presentation-video-ended'}));};video.onerror=()=>{console.warn('Congratulations video could not be played',video.error);clearTimeout(presentationTimer);presentationTimer=setTimeout(()=>{if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'presentation-video-ended'}));},1800);};$('presentation-audio').hidden=false;$('presentation-audio').textContent=video.muted?'Enable sound':'Mute sound';video.play().catch(error=>{console.warn('Presentation autoplay blocked:',error);$('presentation-audio').textContent='Start video / enable sound';});return;}if(p.stage==='school'){showPresentationSchool(p);return;}if(p.stage==='highlight'){clearTimeout(presentationTimer);stopPresentationVideo();$('presentation-video').hidden=true;$('presentation-stage').hidden=true;$('presentation-confetti').hidden=true;$('presentation-screen').classList.remove('active');$('score-screen').classList.add('active');return;}if(p.stage==='select'||p.stage==='complete'){clearTimeout(presentationTimer);stopPresentationVideo();$('presentation-video').hidden=true;$('presentation-stage').hidden=true;$('presentation-confetti').hidden=true;$('announcement').classList.remove('show','presentation-announcement');clearTimeout(announcementTimer);$('a-prizes').innerHTML='';$('a-prizes').hidden=true;$('presentation-screen').classList.remove('active');$('score-screen').classList.add('active');}}
 $('presentation-audio').addEventListener('click',()=>{const video=$('presentation-video');video.muted=!video.muted;$('presentation-audio').textContent=video.muted?'Enable sound':'Mute sound';if(!video.hidden)video.play().catch(error=>console.warn('Could not resume presentation video:',error));});
 
 function connect(){const protocol=location.protocol==='https:'?'wss':'ws';ws=new WebSocket(`${protocol}://${location.host}`);ws.onopen=()=>{retry=0;notifyQueue();};ws.onclose=()=>{setTimeout(connect,Math.min(10000,1000*2**retry++));};ws.onerror=()=>ws.close();ws.onmessage=e=>{let d;try{d=JSON.parse(e.data)}catch{return}if(d.serverNow)serverClockOffset=Number(d.serverNow)-Date.now();if(d.type==='init-state'||d.type==='state'){applyState(d.state||{});if(d.adConfig)updateAdConfig(d.adConfig);if(d.presentation)handlePresentation(d.presentation);}if(d.type==='presentation')handlePresentation(d.presentation);if(d.type==='winner-video')presentationVideoUrl=d.video?.url||'';if(d.type==='winner-highlight')showWinnerHighlight(d.highlight);if(d.type==='ad-config'||d.type==='ad-schedule')updateAdConfig(d.adConfig||d.config||{});if(d.type==='ad-list')adFiles=d.ads||[];if(d.type==='score'){if(Number.isInteger(Number(d.index)))scores[Number(d.index)]=d.value;if(d.school){const schoolName=String(d.school).trim();schoolScores[schoolName.toLocaleLowerCase().replace(/\s+/g,' ')]=Number(d.value);}if(d.schoolScores)schoolScores=d.schoolScores;renderScores();scoreInterrupt();}if(d.type==='winner'){if(d.winners)winners=d.winners;else if(d.winner)winners.push(d.winner);renderWinnerPage();receiveWinner(d.winner||{});}if(d.type==='ping')return;};}

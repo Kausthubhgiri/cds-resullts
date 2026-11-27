@@ -144,7 +144,11 @@ wss.on('connection', ws => { const connectedAt=Date.now(); const heartbeatFresh=
           if(chest) return otherChest===chest;
           return !otherChest && textKey(w.name)===name;
         }).map(w=>({event:safeName(w.event),ageCategory:safeName(w.ageCategory),gender:safeName(w.gender),position:safeName(w.position),school:safeName(w.school)}));
+        if(presentation.active) throw new Error('End the current presentation before starting an individual highlight');
         const payload={name:safeName(selected.name),school:safeName(selected.school),position:safeName(selected.position),event:safeName(selected.event),ageCategory:safeName(selected.ageCategory),gender:safeName(selected.gender),chest:safeName(selected.chest ?? selected.chestNumber),photoUrl:String(selected.photoUrl||''),prizes};
+        presentation={active:true,stage:'highlight',school:safeName(selected.name),position:safeName(selected.position),queue:[],current:{school:safeName(selected.school),position:safeName(selected.position),winner:selected},video:null,startedAt:Date.now()};
+        await savePresentation();
+        broadcast({type:'presentation',presentation,serverNow:Date.now()});
         broadcast({type:'winner-highlight',highlight:payload,serverNow:Date.now()});
         return;
       }
