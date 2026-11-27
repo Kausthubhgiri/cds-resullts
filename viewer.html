@@ -582,6 +582,11 @@ html body #announcement .announce-card{position:relative;z-index:1}
 
 #announcement.show{display:grid!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important}
 #announcement:not(.show){visibility:hidden;pointer-events:none}
+\n
+#announcement.individual-highlight-mode .announce-position,
+#announcement.individual-highlight-mode #a-position{font-size:clamp(34px,6vw,78px);line-height:1.04;overflow-wrap:anywhere}
+#announcement.individual-highlight-mode .announce-name,
+#announcement.individual-highlight-mode #a-name{display:none!important}
 \n</style></head><body><div class="shell"><header class="top"><div><div class="eyebrow">Capital District Sahodaya · Official Results</div><h1 class="title">CDS SPORTS MEET 2K26</h1></div><div class="live">● LIVE RESULTS</div></header></div>
 <section id="score-screen" class="screen scoreboard active"><div id="podium" class="podium"></div><div id="school-rest" class="rest"></div></section>
 <section id="winners-screen" class="screen winners-screen"><div class="winners-head"><h2>CONGRATULATIONS WINNERS</h2><p>CELEBRATING OUR ACHIEVERS</p></div><div id="winners-grid" class="winners-grid"></div><div id="winner-page-count" class="page-count"></div></section>
@@ -638,7 +643,9 @@ function showWinnerHighlight(data){
   clearTimeout(announcementTimer);
   $('presentation-screen').classList.remove('active');
   $('score-screen').classList.add('active');
-  showAnnouncement(data,true,data.prizes);
+  showAnnouncement(data,true,data.prizes,true);
+  // In Highlight mode, the large heading shows the participant's name,
+  // not their podium position. The normal name line is hidden to avoid duplication.
   // Highlight is persistent: only End Presentation on the host clears it.
 }
 
@@ -753,7 +760,7 @@ function winnerInterrupt(){if(adPlaying||$('announcement').classList.contains('s
 function processWinnerQueue(){if(adPlaying||!winnerQueue.length)return;clearTimeout(adWaitTimer);adWaitTimer=null;const w=winnerQueue.shift();pendingWinnerCount=winnerQueue.length;notifyQueue();winnerInterrupt();showAnnouncement(w);}
 function notifyQueue(){if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'announcement-queue',count:pendingWinnerCount,adPlaying}));}
 function setAnnouncementPhoto(w){const photo=$('a-photo'),url=winnerPhoto(w);if(!photo)return;photo.onerror=()=>{photo.style.display='none';photo.removeAttribute('src');};if(url){photo.src=url;photo.style.display='block';}else{photo.removeAttribute('src');photo.style.display='none';}}
-function showAnnouncement(w,persistent=false,prizes=null){
+function showAnnouncement(w,persistent=false,prizes=null,highlightMode=false){
   // A regular winner announcement must always sit above the scoreboard and
   // must not be hidden behind a stale presentation screen state.
   if(!persistent){
@@ -763,9 +770,11 @@ function showAnnouncement(w,persistent=false,prizes=null){
   clearTimeout(winnerHighlightTimer);
   winnerHighlightTimer=null;
   activeAnnouncementWinner=w;
-  $('a-position').textContent=displayPosition(w.position);
+  const individualName=isRelay(w.event)?(w.school||w.name):w.name||w.school||'Winner';
+  $('a-position').textContent=highlightMode?individualName:displayPosition(w.position);
+  $('a-name').textContent=individualName;
+  $('announcement').classList.toggle('individual-highlight-mode',!!highlightMode);
   setAnnouncementPhoto(w);
-  $('a-name').textContent=isRelay(w.event)?(w.school||w.name):w.name||w.school||'Winner';
   $('a-school').textContent=isRelay(w.event)?'RELAY TEAM':w.school||'';
   $('a-detail').textContent=[w.event,w.ageCategory,w.gender,w.chest?'Chest No. '+w.chest:''].filter(Boolean).join(' · ');
   const prizeBox=$('a-prizes');
