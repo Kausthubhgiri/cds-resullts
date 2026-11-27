@@ -132,6 +132,22 @@ wss.on('connection', ws => { const connectedAt=Date.now(); const heartbeatFresh=
     try {
       if (m.type === 'score') { const i=Number(m.index), v=Number(m.value), school=safeName(m.school); if(!Number.isInteger(i)||i<0||!Number.isFinite(v)) throw new Error('Invalid score'); if(!school) throw new Error('School name is required for a score update'); state.scores[i]=v; state.schoolScores=state.schoolScores||{}; state.schoolScores[scoreKey(school)]=v; state.schools=[...new Set([...(state.schools||[]),school])].sort((a,b)=>a.localeCompare(b)); await saveState(); broadcast({type:'score',index:i,school,value:v,schoolScores:state.schoolScores,serverNow:Date.now()}); return; }
       if (m.type === 'winner' || m.type === 'update-winner') { if(!m.winner?.id) throw new Error('Winner is required'); const winner=await enrichWinner(m.winner); const at=state.winners.findIndex(w=>w.id===winner.id); if(at>=0)state.winners[at]=winner;else state.winners.push(winner); await saveState(); broadcast({type:'winner',winner,winners:state.winners,serverNow:Date.now()}); return; }
+      if (m.type === 'highlight-winner') {
+        const selected=state.winners.find(w=>String(w.id)===String(m.winnerId));
+        if(!selected) throw new Error('Selected winner was not found');
+        if(/relay/i.test(String(selected.event||''))) throw new Error('Individual highlight is not available for relay entries');
+        const school=textKey(selected.school), chest=textKey(selected.chest ?? selected.chestNumber), name=textKey(selected.name);
+        if(!school || (!chest && !name)) throw new Error('This winner is missing the participant identity needed to collect prizes');
+        const prizes=state.winners.filter(w=>{
+          if(/relay/i.test(String(w.event||'')) || textKey(w.school)!==school) return false;
+          const otherChest=textKey(w.chest ?? w.chestNumber);
+          if(chest) return otherChest===chest;
+          return !otherChest && textKey(w.name)===name;
+        }).map(w=>({event:safeName(w.event),ageCategory:safeName(w.ageCategory),gender:safeName(w.gender),position:safeName(w.position),school:safeName(w.school)}));
+        const payload={name:safeName(selected.name),school:safeName(selected.school),chest:safeName(selected.chest ?? selected.chestNumber),photoUrl:String(selected.photoUrl||''),prizes};
+        broadcast({type:'winner-highlight',highlight:payload,serverNow:Date.now()});
+        return;
+      }
       if (m.type === 'delete-winner') { state.winners=state.winners.filter(w=>w.id!==m.id); await saveState(); publishState(); return; }
       if (m.type === 'clear-scores') { state.scores=[]; await saveState(); publishState(); return; }
       if (m.type === 'clear-winners') { state.winners=[]; await saveState(); publishState(); return; }
