@@ -579,7 +579,10 @@ html body #announcement .announce-card{position:relative;z-index:1}
   #announcement .announce-school{font-size:clamp(16px,4.2vw,22px)}
 }
 
-</style></head><body><div class="shell"><header class="top"><div><div class="eyebrow">Capital District Sahodaya · Official Results</div><h1 class="title">CDS SPORTS MEET 2K26</h1></div><div class="live">● LIVE RESULTS</div></header></div>
+
+#announcement.show{display:grid!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important}
+#announcement:not(.show){visibility:hidden;pointer-events:none}
+\n</style></head><body><div class="shell"><header class="top"><div><div class="eyebrow">Capital District Sahodaya · Official Results</div><h1 class="title">CDS SPORTS MEET 2K26</h1></div><div class="live">● LIVE RESULTS</div></header></div>
 <section id="score-screen" class="screen scoreboard active"><div id="podium" class="podium"></div><div id="school-rest" class="rest"></div></section>
 <section id="winners-screen" class="screen winners-screen"><div class="winners-head"><h2>CONGRATULATIONS WINNERS</h2><p>CELEBRATING OUR ACHIEVERS</p></div><div id="winners-grid" class="winners-grid"></div><div id="winner-page-count" class="page-count"></div></section>
 <section id="schools-screen" class="screen schools-screen">
@@ -751,6 +754,12 @@ function processWinnerQueue(){if(adPlaying||!winnerQueue.length)return;clearTime
 function notifyQueue(){if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'announcement-queue',count:pendingWinnerCount,adPlaying}));}
 function setAnnouncementPhoto(w){const photo=$('a-photo'),url=winnerPhoto(w);if(!photo)return;photo.onerror=()=>{photo.style.display='none';photo.removeAttribute('src');};if(url){photo.src=url;photo.style.display='block';}else{photo.removeAttribute('src');photo.style.display='none';}}
 function showAnnouncement(w,persistent=false,prizes=null){
+  // A regular winner announcement must always sit above the scoreboard and
+  // must not be hidden behind a stale presentation screen state.
+  if(!persistent){
+    $('presentation-screen').classList.remove('active');
+    $('score-screen').classList.add('active');
+  }
   clearTimeout(winnerHighlightTimer);
   winnerHighlightTimer=null;
   activeAnnouncementWinner=w;
