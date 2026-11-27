@@ -422,6 +422,41 @@ html body #announcement .announce-card{position:relative;z-index:1}
 @keyframes confettiDrift{from{transform:translateY(-18px)}to{transform:translateY(28px)}}
 @media(prefers-reduced-motion:reduce){#presentation-screen .presentation-stage,#presentation-screen .presentation-confetti{animation:none!important}}
 
+
+/* Announced-winner emphasis: retain the existing card layout while making each result stand out. */
+#winners-screen .winner-card{
+  border-color:rgba(232,199,121,.48);
+  background:
+    radial-gradient(ellipse at 50% 0,rgba(232,199,121,.17),transparent 58%),
+    linear-gradient(145deg,rgba(35,39,49,.98),rgba(12,16,25,.98));
+  box-shadow:0 18px 42px rgba(0,0,0,.3),0 0 22px rgba(232,199,121,.075),inset 0 1px 0 rgba(255,255,255,.055);
+}
+#winners-screen .winner-card:after{
+  content:"ANNOUNCED WINNER";
+  position:absolute;
+  top:13px;
+  right:14px;
+  color:#e8c779;
+  font-size:9px;
+  font-weight:850;
+  letter-spacing:.16em;
+  padding:5px 8px;
+  border:1px solid rgba(232,199,121,.3);
+  border-radius:999px;
+  background:rgba(8,11,18,.48);
+}
+#winners-screen .winner-card .medal{
+  display:inline-flex;
+  align-items:center;
+  min-height:22px;
+  padding:4px 9px;
+  border:1px solid rgba(232,199,121,.35);
+  border-radius:999px;
+  background:rgba(232,199,121,.1);
+  color:#f3d995;
+  font-weight:850;
+}
+
 </style></head><body><div class="shell"><header class="top"><div><div class="eyebrow">Capital District Sahodaya · Official Results</div><h1 class="title">CDS SPORTS MEET 2K26</h1></div><div class="live">● LIVE RESULTS</div></header></div>
 <section id="score-screen" class="screen scoreboard active"><div id="podium" class="podium"></div><div id="school-rest" class="rest"></div></section>
 <section id="winners-screen" class="screen winners-screen"><div class="winners-head"><h2>CONGRATULATIONS WINNERS</h2><p>CELEBRATING OUR ACHIEVERS</p></div><div id="winners-grid" class="winners-grid"></div><div id="winner-page-count" class="page-count"></div></section>
